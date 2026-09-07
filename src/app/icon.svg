@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>BEVMard</title>
+  <rect width="64" height="64" rx="12" fill="#070a12"/>
+  <path d="M27 10h10v8c0 3 6 5 6 12v20a4 4 0 0 1-4 4H25a4 4 0 0 1-4-4V30c0-7 6-9 6-12z" fill="none" stroke="#3d7bff" stroke-width="2.5"/>
+  <path d="M31 12h2v6c0 3 6 5 6 12v20H25V30c0-7 6-9 6-12z" fill="#ff7a1a" opacity="0.9"/>
+</svg>

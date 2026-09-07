@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+/* ── Design tokens: one committed dark world (dispatch board at night) ──── */
+@theme {
+  --color-ink-0: #070a12;
+  --color-ink-1: #0d1322;
+  --color-ink-2: #141d33;
+  --color-ink-3: #1c2744;
+  --color-line: #223052;
+  --color-line-soft: #182442;
+  --color-blue: #3d7bff;
+  --color-blue-soft: #8fb3ff;
+  --color-orange: #ff7a1a;
+  --color-orange-soft: #ffb577;
+  --color-orange-ink: #1a0d02;
+  --color-text: #edf1fa;
+  --color-muted: #93a1c2;
+  --color-dim: #5f6d8f;
+  --color-ok: #3ddc97;
+
+  --radius-brand: 6px;
+  --container-page: 1180px;
+
+  --animate-ticker: ticker 42s linear infinite;
+  --animate-blink: blink 1s steps(2) infinite;
+
+  @keyframes ticker {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+}
+
+/* Fonts come from next/font; map their CSS variables to Tailwind font utilities. */
+@theme inline {
+  --font-display:
+    var(--font-big-shoulders), "Big Shoulders Display", "Archivo Narrow", Impact, "Arial Narrow", sans-serif;
+  --font-body: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-plex-mono), "SFMono-Regular", Consolas, monospace;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-ink-0 text-text font-body antialiased;
+    font-size: 17px;
+    line-height: 1.55;
+    overflow-x: hidden;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-orange);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+@layer components {
+  .wrap {
+    width: min(var(--container-page), 100% - 40px);
+    margin-inline: auto;
+  }
+  @media (max-width: 640px) {
+    .wrap {
+      width: min(var(--container-page), 100% - 32px);
+    }
+  }
+
+  .eyebrow {
+    @apply font-body font-bold text-[12px] tracking-[0.22em] uppercase text-orange;
+    font-variation-settings: "wdth" 125;
+  }
+  .wide {
+    font-variation-settings: "wdth" 125;
+  }
+
+  .h2 {
+    @apply font-display font-extrabold leading-[0.95] tracking-[0.005em];
+    font-size: clamp(40px, 6vw, 68px);
+    text-wrap: balance;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2.5 rounded-brand border border-transparent px-5 py-3 text-[15px] font-semibold whitespace-nowrap no-underline transition-[background,border-color,color,box-shadow] duration-200;
+  }
+  .btn-orange {
+    @apply bg-orange text-orange-ink hover:bg-[#ff8c3a] hover:shadow-[0_8px_30px_-8px_rgba(255,122,26,0.35)];
+  }
+  .btn-ghost {
+    @apply bg-transparent text-blue-soft border-line hover:border-blue hover:text-text;
+  }
+
+  /* Blueprint grid behind the hero */
+  .blueprint::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(61, 123, 255, 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(61, 123, 255, 0.07) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, #000 30%, transparent 100%);
+    pointer-events: none;
+  }
+
+  /* Riveted nameplate (Typenschild) */
+  .plate {
+    background: linear-gradient(135deg, #1b2540 0%, #121a2e 45%, #1a2340 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 20px 40px -24px rgba(0, 0, 0, 0.8);
+  }
+  .rivet {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #7f90b8, #2b3650 70%);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  }
+
+  /* Console shadow, blue glow lifting it off the board */
+  .console-shadow {
+    box-shadow:
+      0 0 0 1px rgba(61, 123, 255, 0.08),
+      0 30px 80px -30px rgba(61, 123, 255, 0.35),
+      0 40px 60px -40px rgba(0, 0, 0, 0.9);
+  }
+  .card-best {
+    box-shadow:
+      0 0 0 1px rgba(255, 122, 26, 0.18),
+      0 16px 40px -24px rgba(255, 122, 26, 0.35);
+  }
+
+  .ticker-mask {
+    mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  .cta-glow {
+    background:
+      radial-gradient(60% 120% at 100% 0%, rgba(255, 122, 26, 0.16), transparent 60%),
+      radial-gradient(50% 100% at 0% 100%, rgba(61, 123, 255, 0.18), transparent 60%), var(--color-ink-1);
+  }
+}
