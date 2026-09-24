@@ -229,9 +229,13 @@ export const GUARANTEES: readonly Guarantee[] = [
   },
 ];
 
+/**
+ * Outbound links. Public bevmaq.com pages only: nothing here should point at
+ * internal tooling or roadmap material.
+ */
 export const LINKS = {
-  bmi: "https://bmi.bevmaq.com",
-  roadmap: "https://bmi.bevmaq.com/de/bmintelligence/",
-  buy: "https://bevmaq.com/buy",
-  home: "https://bevmaq.com",
+  buy: "https://www.bevmaq.com/buy/",
+  contact: "https://www.bevmaq.com/contact/",
+  home: "https://www.bevmaq.com/",
+  linkedin: "https://www.linkedin.com/company/bevmaq-gmbh",
 } as const;

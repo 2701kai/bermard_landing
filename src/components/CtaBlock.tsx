@@ -24,11 +24,11 @@ export function CtaBlock() {
               Ask Bevmard now
             </motion.a>
             <motion.a
-              href={LINKS.roadmap}
+              href={LINKS.contact}
               className="btn btn-ghost px-[22px] py-4 text-[16px]"
               whileTap={{ scale: 0.97 }}
             >
-              See the BMi roadmap
+              Talk to a BEVMAQ contact
             </motion.a>
             <span className="text-center font-mono text-[12px] text-dim">
               preview · scripted demo · live agent lands on bevmaq.com/buy
