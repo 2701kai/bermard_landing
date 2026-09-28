@@ -1,6 +1,7 @@
 "use client";
 
-// Google Identity Services button (script via next/script, as in BEVMAQ_OS app/login/LoginClient.tsx).
+// Google Identity Services button (script via next/script, as in BEVMAQ_OS app/login/LoginClient.tsx), shared by
+// the gate page and /team.
 // The credential goes to /api/early-access/login; a full navigation afterwards lets the proxy see the new cookie.
 import Script from "next/script";
 import { useCallback, useState } from "react";
@@ -24,19 +25,24 @@ export function GoogleButton({
   next,
   locale,
   text,
+  intent,
   errorText,
   notConfiguredText,
+  nonTeam,
 }: {
   next: string;
   locale: string;
-  /** signup_with: the public-mode sign-up; signin_with: the closed-mode team entry. */
+  /** signup_with: the public-mode sign-up on the gate page; signin_with: the staff sign-in on /team. */
   text: "signup_with" | "signin_with";
+  /** 'team' (/team): a non-team account gets no session and sees `nonTeam`. */
+  intent?: "team";
   errorText: string;
   notConfiguredText: string;
+  nonTeam?: { text: string; linkText: string; href: string };
 }) {
   const [gsiReady, setGsiReady] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<"error" | "not_team" | null>(null);
 
   const mountButton = useCallback(
     (el: HTMLDivElement | null) => {
@@ -45,20 +51,22 @@ export function GoogleButton({
         client_id: CLIENT_ID,
         callback: async (r) => {
           setBusy(true);
-          setError(false);
+          setError(null);
           try {
             const res = await fetch("/api/early-access/login", {
               method: "POST",
               headers: { "content-type": "application/json" },
-              body: JSON.stringify({ credential: r.credential, next }),
+              body: JSON.stringify({ credential: r.credential, next, intent }),
             });
-            const data = (await res.json()) as { ok?: boolean; redirect?: unknown };
+            const data = (await res.json()) as { ok?: boolean; redirect?: unknown; reason?: unknown };
             if (res.ok && data.ok && typeof data.redirect === "string") {
               window.location.assign(data.redirect);
               return;
             }
-          } catch {}
-          setError(true);
+            setError(data.reason === "not_team" ? "not_team" : "error");
+          } catch {
+            setError("error");
+          }
           setBusy(false);
         },
       });
@@ -70,7 +78,7 @@ export function GoogleButton({
         locale,
       });
     },
-    [next, locale, text],
+    [next, locale, text, intent],
   );
 
   if (!CLIENT_ID) {
@@ -85,10 +93,19 @@ export function GoogleButton({
       >
         {gsiReady && <div ref={mountButton} />}
       </div>
-      {error && (
-        <p role="alert" className="font-mono text-[12.5px] text-orange-soft">
-          {errorText}
+      {error === "not_team" && nonTeam ? (
+        <p role="alert" className="m-0 font-mono text-[12.5px] leading-[1.6] text-orange-soft">
+          {nonTeam.text}{" "}
+          <a href={nonTeam.href} className="text-blue-soft underline underline-offset-4 hover:text-text">
+            {nonTeam.linkText}
+          </a>
         </p>
+      ) : (
+        error && (
+          <p role="alert" className="m-0 font-mono text-[12.5px] text-orange-soft">
+            {errorText}
+          </p>
+        )
       )}
     </div>
   );

@@ -7,6 +7,7 @@ export const SESSION_DAYS = 30;
 const SESSION_MS = SESSION_DAYS * 86_400_000;
 
 export const GATE_PAGE = "/early-access";
+export const TEAM_PAGE = "/team";
 
 /** number: the early adopter's seq index (displayed + OFFSET), null for a team session. exp: epoch ms. */
 export type Session = { email: string; name: string; number: number | null; exp: number };
@@ -65,7 +66,7 @@ export function sessionCookieOptions(secure: boolean) {
 
 /** Open-redirect guard for the `next` deep-link param: one relative path starting with a single '/'.
  *  Protocol-relative ('//host'), absolute ('http://'), backslash ('/\host', which URL parsers read as '//host')
- *  and control characters fall back to '/'; so does the gate page itself (a team redirect loop). */
+ *  and control characters fall back to '/'; so do the gate and team pages themselves (a redirect loop). */
 export function sanitizeNextPath(raw: string | null | undefined): string {
   if (!raw) return "/";
   let decoded: string;
@@ -77,6 +78,8 @@ export function sanitizeNextPath(raw: string | null | undefined): string {
   if (!decoded.startsWith("/") || decoded.startsWith("//") || decoded.includes("://")) return "/";
   // biome-ignore lint/suspicious/noControlCharactersInRegex: rejecting control characters is the point
   if (/[\\\u0000-\u001f\u007f]/.test(decoded)) return "/";
-  if (decoded === GATE_PAGE || decoded.startsWith(`${GATE_PAGE}?`) || decoded.startsWith(`${GATE_PAGE}/`)) return "/";
+  for (const page of [GATE_PAGE, TEAM_PAGE]) {
+    if (decoded === page || decoded.startsWith(`${page}?`) || decoded.startsWith(`${page}/`)) return "/";
+  }
   return decoded;
 }

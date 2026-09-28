@@ -1,6 +1,7 @@
 // Sign-in with a Google Identity Services credential, framework-free so the mode rules are testable.
 // Team gets a session without a number. Public mode registers everyone else once as an early adopter; closed mode
-// (the default) gives a non-team account nothing: no registration, no number, no session.
+// (the default) gives a non-team account nothing: no registration, no number, no session. The staff sign-in
+// (/team, intent 'team') gives a non-team account nothing in either mode and says why (reason 'not_team').
 import { type GoogleClaims, loginDecision, publicMode } from "./access";
 import { verifyGoogleIdToken } from "./google";
 import type { Locale } from "./locale";
@@ -9,7 +10,7 @@ import { GATE_PAGE, type Session, sanitizeNextPath } from "./session";
 
 export type LoginResult =
   | { status: 200; redirect: string; session: Omit<Session, "exp"> }
-  | { status: 401 | 403 | 503; redirect?: undefined; session?: undefined };
+  | { status: 401 | 403 | 503; reason?: "not_team"; redirect?: undefined; session?: undefined };
 
 export type LoginDeps = {
   verify?: (credential: string) => Promise<GoogleClaims>;
@@ -20,7 +21,7 @@ export type LoginDeps = {
 };
 
 export async function login(
-  input: { credential: string; next: string | null; host: string; locale: Locale },
+  input: { credential: string; next: string | null; host: string; locale: Locale; intent?: "team" },
   deps: LoginDeps = {},
 ): Promise<LoginResult> {
   const verify = deps.verify ?? verifyGoogleIdToken;
@@ -33,6 +34,7 @@ export async function login(
   }
 
   const decision = loginDecision(claims, deps.allow ?? process.env.GATE_ALLOW);
+  if (decision !== "team" && input.intent === "team") return { status: 403, reason: "not_team" };
   if (decision === "reject") return { status: 403 };
   if (decision === "team") {
     return {

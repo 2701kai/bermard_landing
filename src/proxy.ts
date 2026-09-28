@@ -4,7 +4,7 @@
 // waitlist view), /api/* answers 403; closed mode ignores a non-team session, so it counts as no session.
 import { type NextRequest, NextResponse } from "next/server";
 import { gateOn, isTeamEmail, publicMode } from "@/lib/gate/access";
-import { GATE_PAGE, SESSION_COOKIE, sanitizeNextPath, verifySession } from "@/lib/gate/session";
+import { GATE_PAGE, SESSION_COOKIE, sanitizeNextPath, TEAM_PAGE, verifySession } from "@/lib/gate/session";
 
 const PUBLIC_PREFIXES = ["/api/early-access/"];
 
@@ -17,6 +17,8 @@ export function proxy(req: NextRequest) {
   if (!gateOn()) return NextResponse.next();
   const { pathname, search } = req.nextUrl;
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) return NextResponse.next();
+  // The staff sign-in is always reachable, a team session included (it shows the signed-in state and sign-out).
+  if (pathname === TEAM_PAGE) return noindex(NextResponse.next());
 
   const verified = verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   const team = verified !== null && isTeamEmail(verified.email);

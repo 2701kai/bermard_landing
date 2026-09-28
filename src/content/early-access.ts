@@ -1,7 +1,7 @@
 /**
  * Copy for the early-access gate page (/early-access), one block per language. Closed mode (the default) shows
- * kicker, headline, lede, closedLine and the team entry; public mode (GATE_PUBLIC=on) shows scarcity, fair, the
- * sign-up button and the fine print instead of closedLine and the team entry.
+ * kicker, headline, lede and closedLine; public mode (GATE_PUBLIC=on) shows scarcity, fair, the sign-up button and
+ * the fine print instead of closedLine. Both end on the quiet link to /team, the staff sign-in (team* fields).
  * Hyphens only, German with real umlauts, informal du/tu.
  */
 import type { Locale } from "@/lib/gate/locale";
@@ -14,7 +14,7 @@ export type GateCopy = {
   fair: string;
   /** Closed mode: replaces scarcity and fair. */
   closedLine: string;
-  /** Closed mode: the quiet team sign-in entry at the bottom. */
+  /** Both modes: the quiet link to /team at the bottom. */
   teamEntry: string;
   /** Fine print up to the link (keeps its own trailing space); `privacyLink` follows as the link to `privacyUrl`, then a period. */
   fine: string;
@@ -28,6 +28,15 @@ export type GateCopy = {
   waitBody: string;
   signedInAs: string;
   signOut: string;
+  /** /team, the staff sign-in. */
+  teamKicker: string;
+  teamHeadline: string;
+  teamLede: string;
+  teamNonTeam: string;
+  teamNonTeamLink: string;
+  /** `{email}` is replaced. */
+  teamSignedIn: string;
+  teamContinue: string;
 };
 
 // bevmaq.com serves /de/privacy/ and /privacy/ (200); /it/privacy/ is a 404, so Italian links the English page.
@@ -56,6 +65,13 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
       "Sobald deine Runde startet, melden wir uns bei dir. Bis dahin: Wir sehen uns auf der CIBUS TEC 2026 in Parma.",
     signedInAs: "Angemeldet als",
     signOut: "Abmelden",
+    teamKicker: "BEVMAQ · TEAM",
+    teamHeadline: "Team-Login.",
+    teamLede: "Melde dich mit deinem @bevmaq.com-Google-Konto an.",
+    teamNonTeam: "Dieser Zugang ist nur für das BEVMAQ-Team.",
+    teamNonTeamLink: "Als Early Adopter registrierst du dich hier.",
+    teamSignedIn: "Angemeldet als {email}.",
+    teamContinue: "Weiter",
   },
   en: {
     kicker: "EARLY ACCESS · BY INVITATION",
@@ -77,6 +93,13 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     waitBody: "We'll reach out as soon as your round opens. Until then: see you at CIBUS TEC 2026 in Parma.",
     signedInAs: "Signed in as",
     signOut: "Sign out",
+    teamKicker: "BEVMAQ · TEAM",
+    teamHeadline: "Team sign-in.",
+    teamLede: "Sign in with your @bevmaq.com Google account.",
+    teamNonTeam: "This sign-in is for the BEVMAQ team only.",
+    teamNonTeamLink: "Register as an early adopter here.",
+    teamSignedIn: "Signed in as {email}.",
+    teamContinue: "Continue",
   },
   it: {
     kicker: "EARLY ACCESS · SU INVITO",
@@ -98,5 +121,12 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     waitBody: "Ti scriviamo appena si apre il tuo turno. Nel frattempo: ci vediamo a CIBUS TEC 2026, Parma.",
     signedInAs: "Accesso come",
     signOut: "Esci",
+    teamKicker: "BEVMAQ · TEAM",
+    teamHeadline: "Accesso team.",
+    teamLede: "Accedi con il tuo account Google @bevmaq.com.",
+    teamNonTeam: "Questo accesso è riservato al team BEVMAQ.",
+    teamNonTeamLink: "Registrati come early adopter qui.",
+    teamSignedIn: "Accesso come {email}.",
+    teamContinue: "Continua",
   },
 };

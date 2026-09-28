@@ -1,4 +1,4 @@
-// POST {credential, next}: a Google Identity Services credential -> session cookie (rules in lib/gate/login.ts).
+// POST {credential, next, intent?}: a Google Identity Services credential -> session cookie (rules in lib/gate/login.ts).
 import { type NextRequest, NextResponse } from "next/server";
 import { LANG_COOKIE, pickLocale } from "@/lib/gate/locale";
 import { login } from "@/lib/gate/login";
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     if (originHost !== host) return fail(403);
   }
 
-  let body: { credential?: unknown; next?: unknown };
+  let body: { credential?: unknown; next?: unknown; intent?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -32,8 +32,9 @@ export async function POST(req: NextRequest) {
     next: typeof body.next === "string" ? body.next : null,
     host,
     locale: pickLocale(req.cookies.get(LANG_COOKIE)?.value, req.headers.get("accept-language")),
+    intent: body.intent === "team" ? "team" : undefined,
   });
-  if (!result.session) return fail(result.status);
+  if (!result.session) return NextResponse.json({ ok: false, reason: result.reason }, { status: result.status });
 
   const res = NextResponse.json({ ok: true, redirect: result.redirect });
   res.cookies.set(SESSION_COOKIE, signSession(result.session), sessionCookieOptions(cookieSecure(req.nextUrl)));

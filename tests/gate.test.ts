@@ -66,6 +66,8 @@ describe("sanitizeNextPath", () => {
     ["%E0%A4%A"],
     ["/early-access"],
     ["/early-access?next=/x"],
+    ["/team"],
+    ["/team?next=/x"],
   ])("%p falls back to /", (raw) => {
     expect(sanitizeNextPath(raw)).toBe("/");
   });
@@ -324,6 +326,39 @@ describe("login modes", () => {
       throw new Error("Storage unavailable");
     });
     expect(await login(input, { ...s.deps, verify: claims("ada@gmail.com"), isPublic: true })).toEqual({ status: 503 });
+  });
+
+  test("staff sign-in (intent team): a non-team account gets no registration and no session, in both modes", async () => {
+    for (const isPublic of [false, true]) {
+      const s = spies();
+      const r = await login({ ...input, intent: "team" }, { ...s.deps, verify: claims("ada@gmail.com"), isPublic });
+      expect(r).toEqual({ status: 403, reason: "not_team" });
+      expect(r.session).toBeUndefined();
+      expect(s.register).not.toHaveBeenCalled();
+    }
+  });
+
+  test("staff sign-in (intent team): a team account gets a session and a sanitized next", async () => {
+    const s = spies();
+    const ok = await login(
+      { ...input, intent: "team" },
+      { ...s.deps, verify: claims("kai@bevmaq.com"), isPublic: true },
+    );
+    expect(ok).toEqual({
+      status: 200,
+      redirect: "/console?x=1",
+      session: { email: "kai@bevmaq.com", name: "N", number: null },
+    });
+    for (const next of ["//evil.com", "/team", null]) {
+      const r = await login({ ...input, next, intent: "team" }, { ...s.deps, verify: claims("kai@bevmaq.com") });
+      expect(r.redirect).toBe("/");
+    }
+    const allowed = await login(
+      { ...input, intent: "team" },
+      { ...s.deps, allow: "ada@gmail.com", verify: claims("ada@gmail.com"), isPublic: false },
+    );
+    expect(allowed.session?.email).toBe("ada@gmail.com");
+    expect(s.register).not.toHaveBeenCalled();
   });
 
   test("an invalid credential is a 401", async () => {
