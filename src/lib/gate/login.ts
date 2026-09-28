@@ -5,6 +5,7 @@
 import { type GoogleClaims, loginDecision, publicMode } from "./access";
 import { verifyGoogleIdToken } from "./google";
 import type { Locale } from "./locale";
+import { sendWelcomeMail } from "./mail";
 import { notifyTelegram, registerPerson } from "./registry";
 import { GATE_PAGE, type Session, sanitizeNextPath } from "./session";
 
@@ -16,6 +17,7 @@ export type LoginDeps = {
   verify?: (credential: string) => Promise<GoogleClaims>;
   register?: typeof registerPerson;
   notify?: typeof notifyTelegram;
+  welcome?: typeof sendWelcomeMail;
   isPublic?: boolean;
   allow?: string;
 };
@@ -57,7 +59,12 @@ export async function login(
       verified: true,
     };
     const r = await register(who);
-    if (r.first) await notify({ ...who, number: r.number });
+    if (r.first) {
+      await Promise.all([
+        notify({ ...who, number: r.number }),
+        (deps.welcome ?? sendWelcomeMail)({ ...who, number: r.number }),
+      ]);
+    }
     return { status: 200, redirect: GATE_PAGE, session: { id: claims.email, name: claims.name, number: r.number } };
   } catch (e) {
     console.error("[early-access] registration failed", e instanceof Error ? e.message : "unknown");

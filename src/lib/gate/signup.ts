@@ -1,10 +1,9 @@
 // Public-mode sign-up without Google, framework-free so the rules are testable: an e-mail code (also the double
 // opt-in) and a phone callback request. Closed mode answers 404. A filled honeypot answers 200 and does nothing.
 // A verified @bevmaq.com (or GATE_ALLOW) email is team, as with Google; a phone number never is.
-import { GATE_COPY } from "@/content/early-access";
 import { isTeamEmail, publicMode } from "./access";
 import type { Locale } from "./locale";
-import { sendCodeMail } from "./mail";
+import { codeCopy, sendCodeMail, sendWelcomeMail } from "./mail";
 import { bumpTries, checkCode, createChallenge, newCode, normalizeEmail, readChallenge, resendAllowed } from "./otp";
 import { normalizePhone } from "./phone";
 import { claimOtpAttempt, notifyTelegram, type Registrant, registerPerson } from "./registry";
@@ -23,6 +22,7 @@ export type FlowDeps = {
   register?: typeof registerPerson;
   notify?: typeof notifyTelegram;
   send?: (to: string, code: string, locale: Locale) => Promise<unknown>;
+  welcome?: typeof sendWelcomeMail;
   claimAttempt?: (cid: string, n: number) => Promise<boolean>;
   allow?: string;
   now?: number;
@@ -37,8 +37,7 @@ function filled(honeypot: unknown): boolean {
 }
 
 function defaultSend(to: string, code: string, locale: Locale) {
-  const t = GATE_COPY[locale];
-  return sendCodeMail(to, code, locale, { subject: t.mailSubject, line: t.mailLine, validity: t.mailValidity });
+  return sendCodeMail(to, code, locale, codeCopy(locale));
 }
 
 async function registerAndSession(who: Registrant, deps: FlowDeps): Promise<FlowResult> {
@@ -46,7 +45,13 @@ async function registerAndSession(who: Registrant, deps: FlowDeps): Promise<Flow
   const notify = deps.notify ?? notifyTelegram;
   try {
     const r = await register(who);
-    if (r.first) await notify({ ...who, number: r.number });
+    if (r.first) {
+      const welcome = deps.welcome ?? sendWelcomeMail;
+      await Promise.all([
+        notify({ ...who, number: r.number }),
+        who.email && who.verified ? welcome({ ...who, email: who.email, number: r.number }) : null,
+      ]);
+    }
     const id = who.email ?? who.phone ?? "";
     return { status: 200, body: { ok: true, redirect: GATE_PAGE }, session: { id, name: who.name, number: r.number } };
   } catch (e) {

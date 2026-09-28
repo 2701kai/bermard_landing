@@ -145,6 +145,37 @@ export async function registerPerson(
   return { number, first: true };
 }
 
+async function listPathnames(api: BlobApi, prefix: string, token: string): Promise<string[]> {
+  const out: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await api.list({ prefix, cursor, token });
+    out.push(...page.blobs.map((b) => b.pathname));
+    cursor = page.hasMore ? page.cursor : undefined;
+  } while (cursor);
+  return out;
+}
+
+/** How many people are registered under the current prefix (a list, no reads). */
+export async function countPeople(deps: { api?: BlobApi; token?: string; prefix?: string } = {}): Promise<number> {
+  const prefix = deps.prefix ?? storePrefix();
+  return (await listPathnames(deps.api ?? realBlob, `${prefix}people/`, deps.token ?? envToken())).length;
+}
+
+/** Every person record under the current prefix, read eight at a time. Records written before a field existed
+ *  (source, verified) come back without it. */
+export async function listPeople(deps: { api?: BlobApi; token?: string; prefix?: string } = {}): Promise<Person[]> {
+  const api = deps.api ?? realBlob;
+  const token = deps.token ?? envToken();
+  const paths = await listPathnames(api, `${deps.prefix ?? storePrefix()}people/`, token);
+  const people: Person[] = [];
+  for (let i = 0; i < paths.length; i += 8) {
+    const batch = await Promise.all(paths.slice(i, i + 8).map((p) => readJson<Person>(api, p, token)));
+    for (const person of batch) if (person) people.push(person);
+  }
+  return people;
+}
+
 /** Each wrong e-mail code claims otp/<cid>/<n>.json exclusively, n being the tries count its cookie carried. A replayed
  *  challenge cookie (an old tries count) hits a slot that is already taken: false, and the challenge counts as spent. */
 export async function claimOtpAttempt(

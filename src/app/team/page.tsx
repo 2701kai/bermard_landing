@@ -1,5 +1,6 @@
 // /team: the staff sign-in, always public (src/proxy.ts). A team session sees its signed-in state with Continue
-// (to `next`) and Sign out; everyone else gets the Google button with intent 'team', which never registers anyone.
+// (to `next`) and Sign out, plus the registry count and its CSV export; everyone else gets the Google button with
+// intent 'team', which never registers anyone.
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { GateShell, HEADLINE, Kicker, LEDE } from "@/components/gate/GateShell";
@@ -7,6 +8,7 @@ import { GoogleButton } from "@/components/gate/GoogleButton";
 import { GATE_COPY } from "@/content/early-access";
 import { isTeamEmail } from "@/lib/gate/access";
 import { LANG_COOKIE, pickLocale } from "@/lib/gate/locale";
+import { countPeople } from "@/lib/gate/registry";
 import { GATE_PAGE, SESSION_COOKIE, sanitizeNextPath, verifySession } from "@/lib/gate/session";
 
 export const metadata: Metadata = {
@@ -21,12 +23,21 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
   const locale = pickLocale(jar.get(LANG_COOKIE)?.value, (await headers()).get("accept-language"));
   const session = verifySession(jar.get(SESSION_COOKIE)?.value);
   const t = GATE_COPY[locale];
+  const team = session !== null && isTeamEmail(session.id);
+  let count: number | null = null;
+  if (team) {
+    try {
+      count = await countPeople();
+    } catch (e) {
+      console.warn("[early-access] people count failed", e instanceof Error ? e.message : "unknown");
+    }
+  }
 
   return (
     <GateShell locale={locale} next={next} from="team">
       <Kicker>{t.teamKicker}</Kicker>
       <h1 className={`${HEADLINE} mt-5 text-orange`}>{t.teamHeadline}</h1>
-      {session && isTeamEmail(session.id) ? (
+      {session && team ? (
         <>
           <p className={`${LEDE} mt-7`}>{t.teamSignedIn.replace("{email}", session.id)}</p>
           <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
@@ -45,6 +56,18 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
               </button>
             </form>
           </div>
+          {count !== null && (
+            <p className="m-0 mt-10 font-mono text-[12.5px] tracking-[0.04em] text-muted">
+              {t.teamCount.replace("{count}", String(count))}{" "}
+              <a
+                href="/api/early-access/export"
+                className="text-blue-soft underline underline-offset-4 hover:text-text"
+                download
+              >
+                {t.teamCsv}
+              </a>
+            </p>
+          )}
         </>
       ) : (
         <>

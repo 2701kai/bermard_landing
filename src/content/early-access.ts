@@ -60,6 +60,19 @@ export type GateCopy = {
   mailSubject: string;
   mailLine: string;
   mailValidity: string;
+  /** /team signed-in: `{count}` is replaced; the link downloads the CSV export. */
+  teamCount: string;
+  teamCsv: string;
+  /** Welcome mail on a first registration with a verified email; `{n}`, `{first}`, `{host}` are replaced. */
+  welcomeSubject: string;
+  welcomeHello: string;
+  /** The greeting when there is no name. */
+  welcomeHelloBare: string;
+  welcomeLine1: string;
+  welcomeLine2: string;
+  welcomeBye: string;
+  welcomeSign: string;
+  welcomeFooter: string;
 };
 
 // bevmaq.com serves /de/privacy/ and /privacy/ (200); /it/privacy/ is a 404, so Italian links the English page.
@@ -115,6 +128,18 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     mailSubject: "Dein Code für BEVMAQ Early Access: {code}",
     mailLine: "Dein Code: {code}",
     mailValidity: "Er gilt 15 Minuten. Wenn du dich nicht registriert hast, ignoriere diese E-Mail einfach.",
+    teamCount: "{count} Early Adopter registriert.",
+    teamCsv: "Liste als CSV",
+    welcomeSubject: "Du bist dabei: BEVMAQ Early Adopter Nr. {n}",
+    welcomeHello: "Hallo {first},",
+    welcomeHelloBare: "Hallo,",
+    welcomeLine1: "schön, dass du dabei bist. Deine Early-Adopter-Nummer: {n}.",
+    welcomeLine2:
+      "Wir öffnen den Zugang in kleinen Runden und melden uns, sobald deine startet. Live zu sehen: CIBUS TEC 2026 in Parma.",
+    welcomeBye: "Bis bald",
+    welcomeSign: "Dein BEVMAQ-Team",
+    welcomeFooter:
+      "Du bekommst diese E-Mail, weil du dich auf {host} als Early Adopter registriert hast. Datenschutz: https://www.bevmaq.com/de/privacy/",
   },
   en: {
     kicker: "EARLY ACCESS · BY INVITATION",
@@ -163,6 +188,18 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     mailSubject: "Your BEVMAQ Early Access code: {code}",
     mailLine: "Your code: {code}",
     mailValidity: "It is valid for 15 minutes. If you didn't sign up, just ignore this email.",
+    teamCount: "{count} early adopters registered.",
+    teamCsv: "Download as CSV",
+    welcomeSubject: "You're on the list: BEVMAQ early adopter no. {n}",
+    welcomeHello: "Hi {first},",
+    welcomeHelloBare: "Hi,",
+    welcomeLine1: "great to have you on board. Your early adopter number: {n}.",
+    welcomeLine2:
+      "We're opening access in small rounds and will get in touch as soon as yours starts. See it live at CIBUS TEC 2026 in Parma.",
+    welcomeBye: "See you soon,",
+    welcomeSign: "The BEVMAQ team",
+    welcomeFooter:
+      "You're receiving this email because you registered as an early adopter on {host}. Privacy: https://www.bevmaq.com/privacy/",
   },
   it: {
     kicker: "EARLY ACCESS · SU INVITO",
@@ -211,5 +248,17 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     mailSubject: "Il tuo codice BEVMAQ Early Access: {code}",
     mailLine: "Il tuo codice: {code}",
     mailValidity: "È valido per 15 minuti. Se non ti sei registrato, ignora questa email.",
+    teamCount: "{count} early adopter registrati.",
+    teamCsv: "Scarica CSV",
+    welcomeSubject: "Ci sei: BEVMAQ early adopter n. {n}",
+    welcomeHello: "Ciao {first},",
+    welcomeHelloBare: "Ciao,",
+    welcomeLine1: "che bello averti con noi. Il tuo numero di early adopter: {n}.",
+    welcomeLine2:
+      "Apriamo l'accesso a piccoli gruppi e ti contatteremo appena si apre il tuo turno. Dal vivo a CIBUS TEC 2026, Parma.",
+    welcomeBye: "A presto,",
+    welcomeSign: "Il team BEVMAQ",
+    welcomeFooter:
+      "Ricevi questa email perché hai effettuato la registrazione come early adopter su {host}. Privacy: https://www.bevmaq.com/privacy/",
   },
 };
