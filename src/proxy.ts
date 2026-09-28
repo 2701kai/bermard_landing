@@ -48,5 +48,5 @@ export function proxy(req: NextRequest) {
 
 export const config = {
   // Static assets stay out of the proxy: build output, next/font files (under _next/static), icons, robots.
-  matcher: ["/((?!_next/static|_next/image|__nextjs|favicon\\.ico|icon\\.svg|robots\\.txt).*)"],
+  matcher: ["/((?!_next/static|_next/image|__nextjs|_vercel|favicon\\.ico|icon\\.svg|robots\\.txt).*)"],
 };

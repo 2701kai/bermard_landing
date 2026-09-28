@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import { MotionConfig } from "motion/react";
 import type { Metadata, Viewport } from "next";
 import { Archivo, Big_Shoulders, IBM_Plex_Mono } from "next/font/google";
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>
         <MotionConfig reducedMotion="user">{children}</MotionConfig>
+        <Analytics />
       </body>
     </html>
   );
