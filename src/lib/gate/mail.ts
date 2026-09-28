@@ -6,9 +6,10 @@ import { isLocale, type Locale } from "./locale";
 import { OFFSET } from "./registry";
 
 export const SPARKPOST_URL = "https://api.eu.sparkpost.com/api/v1/transmissions";
-// am.bot@bevmaq.com: the fixed bevmaq.com sender bevmaq-crm-api already sends through SparkPost (its error mails;
-// client autoresponses go out from the lead's account manager instead).
-export const DEFAULT_MAIL_FROM = "am.bot@bevmaq.com";
+// Never am.bot@bevmaq.com: that is bevmaq-crm-api's affiliate intake mailbox (apps/ambot_email and the affiliate
+// parsers read it), so a reply to one of these mails would land in the lead pipeline.
+export const DEFAULT_MAIL_FROM = "early-access@bevmaq.com";
+export const DEFAULT_REPLY_TO = "dev@bevmaq.com";
 
 type Env = Record<string, string | undefined>;
 type Mail = { subject: string; text: string; html: string };
@@ -42,8 +43,8 @@ async function transmit(to: string, mail: Mail, env: Env, fetchImpl: typeof fetc
     subject: mail.subject,
     text: mail.text,
     html: mail.html,
+    reply_to: env.EARLY_ACCESS_REPLY_TO?.trim() || DEFAULT_REPLY_TO,
   };
-  if (env.EARLY_ACCESS_REPLY_TO?.trim()) content.reply_to = env.EARLY_ACCESS_REPLY_TO.trim();
   const res = await fetchImpl(SPARKPOST_URL, {
     method: "POST",
     headers: { Authorization: env.SPARKPOST_API_KEY ?? "", "content-type": "application/json" },

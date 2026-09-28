@@ -56,6 +56,8 @@ export type GateCopy = {
   phoneSubmit: string;
   phoneHint: string;
   phoneInvalid: string;
+  /** The code mail's server-side send limits (429). */
+  tooMany: string;
   /** The code mail; `{code}` is replaced. */
   mailSubject: string;
   mailLine: string;
@@ -125,6 +127,7 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     phoneSubmit: "Rückruf anfordern",
     phoneHint: "Wir rufen dich an, sobald deine Runde startet.",
     phoneInvalid: "Bitte gib die Nummer mit Ländervorwahl an, zum Beispiel +49.",
+    tooMany: "Zu viele Versuche. Bitte warte kurz und versuch es dann noch einmal.",
     mailSubject: "Dein Code für BEVMAQ Early Access: {code}",
     mailLine: "Dein Code: {code}",
     mailValidity: "Er gilt 15 Minuten. Wenn du dich nicht registriert hast, ignoriere diese E-Mail einfach.",
@@ -185,6 +188,7 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     phoneSubmit: "Request a callback",
     phoneHint: "We'll call you as soon as your round opens.",
     phoneInvalid: "Please include the country code, for example +49.",
+    tooMany: "Too many attempts. Please wait a moment and try again.",
     mailSubject: "Your BEVMAQ Early Access code: {code}",
     mailLine: "Your code: {code}",
     mailValidity: "It is valid for 15 minutes. If you didn't sign up, just ignore this email.",
@@ -245,6 +249,7 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     phoneSubmit: "Richiedi una chiamata",
     phoneHint: "Ti chiamiamo appena si apre il tuo turno.",
     phoneInvalid: "Inserisci il numero con il prefisso internazionale, per esempio +39.",
+    tooMany: "Troppi tentativi. Attendi un momento e riprova.",
     mailSubject: "Il tuo codice BEVMAQ Early Access: {code}",
     mailLine: "Il tuo codice: {code}",
     mailValidity: "È valido per 15 minuti. Se non ti sei registrato, ignora questa email.",

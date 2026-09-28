@@ -84,7 +84,7 @@ describe("welcome mail", () => {
     expect(f).not.toHaveBeenCalled();
   });
 
-  test("with a key: EU transmission in the registration's locale; Reply-To only when set", async () => {
+  test("with a key: EU transmission in the registration's locale; Reply-To from env, else dev@", async () => {
     const f = mock(async (_url: string, _init: RequestInit) => new Response("{}"));
     const env = { SPARKPOST_API_KEY: "k", EARLY_ACCESS_REPLY_TO: "sell@bevmaq.com" };
     expect(await sendWelcomeMail(p, env, f as unknown as typeof fetch)).toBe("sent");
@@ -95,9 +95,9 @@ describe("welcome mail", () => {
     expect(body.recipients).toEqual([{ address: { email: "ada@gmail.com" } }]);
     expect(body.content.subject).toBe("Du bist dabei: BEVMAQ Early Adopter Nr. 1948");
     expect(body.content.reply_to).toBe("sell@bevmaq.com");
-    expect(body.content.from).toEqual({ name: "BEVMAQ", email: "am.bot@bevmaq.com" });
+    expect(body.content.from).toEqual({ name: "BEVMAQ", email: "early-access@bevmaq.com" });
     await sendWelcomeMail(p, { SPARKPOST_API_KEY: "k" }, f as unknown as typeof fetch);
-    expect(JSON.parse(String(f.mock.calls[1]?.[1]?.body)).content.reply_to).toBeUndefined();
+    expect(JSON.parse(String(f.mock.calls[1]?.[1]?.body)).content.reply_to).toBe("dev@bevmaq.com");
   });
 
   test("a failed transmission never throws", async () => {

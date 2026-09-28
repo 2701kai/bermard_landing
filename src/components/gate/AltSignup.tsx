@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { GateCopy } from "@/content/early-access";
 
 type Tab = "email" | "phone" | null;
-type Reason = "wrong" | "expired" | "invalid_phone" | "error" | null;
+type Reason = "wrong" | "expired" | "invalid_phone" | "too_many" | "error" | null;
 
 const RESEND_MS = 60_000;
 
@@ -58,16 +58,18 @@ export function AltSignup({ t, next }: { t: GateCopy; next: string }) {
         ? t.codeExpired
         : reason === "invalid_phone"
           ? t.phoneInvalid
-          : reason
-            ? t.error
-            : null;
+          : reason === "too_many"
+            ? t.tooMany
+            : reason
+              ? t.error
+              : null;
 
   async function sendCode(address: string, honeypot: string) {
     setBusy(true);
     setReason(null);
     const r = await post("/api/early-access/email/start", { email: address, website: honeypot });
     setBusy(false);
-    if (!r.ok) return setReason("error");
+    if (!r.ok) return setReason(r.reason === "rate_limited" || r.reason === "wait" ? "too_many" : "error");
     setEmail(address);
     setSentAt(Date.now());
     setStep("code");

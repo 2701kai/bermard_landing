@@ -36,6 +36,12 @@ export function requestHost(req: NextRequest): string {
   return req.headers.get("host") ?? req.nextUrl.host;
 }
 
+/** First hop of x-forwarded-for, else x-real-ip, else "unknown" (then all such requests share one IP budget). */
+export function clientIp(req: NextRequest): string {
+  const fwd = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return fwd || req.headers.get("x-real-ip")?.trim() || "unknown";
+}
+
 export function requestLocale(req: NextRequest): Locale {
   return pickLocale(req.cookies.get(LANG_COOKIE)?.value, req.headers.get("accept-language"));
 }

@@ -176,6 +176,47 @@ export async function listPeople(deps: { api?: BlobApi; token?: string; prefix?:
   return people;
 }
 
+/** Exclusive-create claim of one pathname: true when this call created it, false when it already existed. */
+async function claimOnce(api: BlobApi, pathname: string, token: string): Promise<boolean> {
+  try {
+    await writeJson(api, pathname, { at: new Date().toISOString() }, token, false);
+    return true;
+  } catch (e) {
+    if ((await readJson(api, pathname, token)) === null) throw e;
+    return false;
+  }
+}
+
+/** Claims one of `cap` slots under `dir` (count, then exclusive-create count+1, n+1 on a race). False when full. */
+async function claimCapped(api: BlobApi, dir: string, cap: number, token: string): Promise<boolean> {
+  const used = (await listPathnames(api, dir, token)).length;
+  for (let n = used + 1; n <= cap; n++) if (await claimOnce(api, `${dir}${n}.json`, token)) return true;
+  return false;
+}
+
+export const CODE_MAIL_PER_EMAIL_DAY = 5;
+export const CODE_MAIL_PER_IP_DAY = 20;
+
+/** Server-side limits on sign-up code mails, which go out through BEVMAQ's shared SparkPost account and domain:
+ *  per email one per 60 s bucket and 5 per UTC day, per client IP 20 per UTC day. Keys under ratelimit/ hold only
+ *  sha256 hashes. False when any limit is hit (earlier claims of the same request stay spent). */
+export async function claimCodeMailQuota(
+  email: string,
+  ip: string,
+  deps: { api?: BlobApi; token?: string; prefix?: string; now?: number } = {},
+): Promise<boolean> {
+  const api = deps.api ?? realBlob;
+  const token = deps.token ?? envToken();
+  const base = `${deps.prefix ?? storePrefix()}ratelimit/`;
+  const now = deps.now ?? Date.now();
+  const day = new Date(now).toISOString().slice(0, 10);
+  const e = personKey(email);
+  const i = createHash("sha256").update(ip).digest("hex");
+  if (!(await claimOnce(api, `${base}email/${e}/min/${Math.floor(now / 60_000)}.json`, token))) return false;
+  if (!(await claimCapped(api, `${base}email/${e}/day/${day}/`, CODE_MAIL_PER_EMAIL_DAY, token))) return false;
+  return claimCapped(api, `${base}ip/${i}/day/${day}/`, CODE_MAIL_PER_IP_DAY, token);
+}
+
 /** Each wrong e-mail code claims otp/<cid>/<n>.json exclusively, n being the tries count its cookie carried. A replayed
  *  challenge cookie (an old tries count) hits a slot that is already taken: false, and the challenge counts as spent. */
 export async function claimOtpAttempt(

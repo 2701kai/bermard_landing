@@ -6,7 +6,7 @@ import type { Locale } from "./locale";
 import { codeCopy, sendCodeMail, sendWelcomeMail } from "./mail";
 import { bumpTries, checkCode, createChallenge, newCode, normalizeEmail, readChallenge, resendAllowed } from "./otp";
 import { normalizePhone } from "./phone";
-import { claimOtpAttempt, notifyTelegram, type Registrant, registerPerson } from "./registry";
+import { claimCodeMailQuota, claimOtpAttempt, notifyTelegram, type Registrant, registerPerson } from "./registry";
 import { envSecret, GATE_PAGE, type Session, sanitizeNextPath } from "./session";
 
 export type FlowResult = {
@@ -24,6 +24,8 @@ export type FlowDeps = {
   send?: (to: string, code: string, locale: Locale) => Promise<unknown>;
   welcome?: typeof sendWelcomeMail;
   claimAttempt?: (cid: string, n: number) => Promise<boolean>;
+  /** The server-side send limits (registry.ts claimCodeMailQuota). */
+  quota?: (email: string, ip: string, now: number) => Promise<boolean>;
   allow?: string;
   now?: number;
   secret?: string | null;
@@ -61,9 +63,9 @@ async function registerAndSession(who: Registrant, deps: FlowDeps): Promise<Flow
 }
 
 /** POST {email, website}: a new 6-digit code by mail (or the dry-run log), the challenge in the returned cookie.
- *  A resend for the same address waits 60 s. */
+ *  A resend for the same address waits 60 s (cookie), and the server-side limits per address and per IP apply. */
 export async function startEmail(
-  input: { email: unknown; honeypot: unknown; locale: Locale; challenge: string | undefined },
+  input: { email: unknown; honeypot: unknown; locale: Locale; challenge: string | undefined; ip: string },
   deps: FlowDeps = {},
 ): Promise<FlowResult> {
   if (!(deps.isPublic ?? publicMode())) return NOT_FOUND;
@@ -74,6 +76,13 @@ export async function startEmail(
   const now = deps.now ?? Date.now();
   if (!resendAllowed(readChallenge(input.challenge, secret), email, now)) {
     return { status: 429, body: { ok: false, reason: "wait" } };
+  }
+  try {
+    const quota = deps.quota ?? ((e, ip, t) => claimCodeMailQuota(e, ip, { now: t }));
+    if (!(await quota(email, input.ip, now))) return { status: 429, body: { ok: false, reason: "rate_limited" } };
+  } catch (e) {
+    console.error("[early-access] code mail limit check failed", e instanceof Error ? e.message : "unknown");
+    return { status: 503, body: { ok: false } };
   }
   const code = newCode();
   const { cookie } = createChallenge(email, code, now, secret);

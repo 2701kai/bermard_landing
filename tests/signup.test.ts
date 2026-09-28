@@ -2,7 +2,7 @@
 // SparkPost. No network: registry, mail and fetch are fakes.
 import { describe, expect, mock, test } from "bun:test";
 import { isTeamEmail } from "@/lib/gate/access";
-import { codeMail, DEFAULT_MAIL_FROM, mailFrom, SPARKPOST_URL, sendCodeMail } from "@/lib/gate/mail";
+import { codeMail, DEFAULT_MAIL_FROM, DEFAULT_REPLY_TO, mailFrom, SPARKPOST_URL, sendCodeMail } from "@/lib/gate/mail";
 import {
   bumpTries,
   checkCode,
@@ -16,7 +16,7 @@ import {
   resendAllowed,
 } from "@/lib/gate/otp";
 import { normalizePhone } from "@/lib/gate/phone";
-import { telegramText } from "@/lib/gate/registry";
+import { type BlobApi, CODE_MAIL_PER_IP_DAY, claimCodeMailQuota, telegramText } from "@/lib/gate/registry";
 import { type FlowDeps, startEmail, submitPhone, verifyEmail } from "@/lib/gate/signup";
 
 const SECRET = "s".repeat(64);
@@ -87,7 +87,10 @@ describe("OTP challenge", () => {
 describe("phone normalizing", () => {
   test.each([
     ["+49 151 1234 5678", "+4915112345678"],
-    ["0049 (0)151-1234.5678", "+49015112345678"], // the briefed rule keeps a (0) trunk digit
+    ["0049 (0)151-1234.5678", "+4915112345678"],
+    ["+49 (0)151 1234567", "+491511234567"],
+    ["0049 (0)151 1234567", "+491511234567"],
+    ["+49 151 1234567", "+491511234567"],
     ["0049 151-1234.5678", "+4915112345678"],
     ["+39 (02) 1234 5678", "+390212345678"],
     ["+44 20 7946 0958", "+442079460958"],
@@ -109,17 +112,19 @@ function fakes(first = true) {
   const notify = mock(async () => "dry-run" as const);
   const send = mock(async () => "dry-run" as const);
   const claimAttempt = mock(async () => true);
+  const quota = mock(async () => true);
   const deps: FlowDeps = {
     isPublic: true,
     register: register as unknown as FlowDeps["register"],
     notify: notify as unknown as FlowDeps["notify"],
     send,
     claimAttempt,
+    quota,
     allow: "",
     now: NOW,
     secret: SECRET,
   };
-  return { register, notify, send, claimAttempt, deps };
+  return { register, notify, send, claimAttempt, quota, deps };
 }
 
 const base = { host: "coming-soon.bevmaq.com", locale: "de" as const };
@@ -129,7 +134,12 @@ describe("closed mode and honeypot", () => {
     const f = fakes();
     const deps = { ...f.deps, isPublic: false };
     expect(
-      (await startEmail({ email: "ada@example.com", honeypot: "", locale: "de", challenge: undefined }, deps)).status,
+      (
+        await startEmail(
+          { email: "ada@example.com", honeypot: "", locale: "de", ip: "203.0.113.7", challenge: undefined },
+          deps,
+        )
+      ).status,
     ).toBe(404);
     expect(
       (await verifyEmail({ ...base, code: "123456", honeypot: "", next: null, challenge: undefined }, deps)).status,
@@ -142,7 +152,7 @@ describe("closed mode and honeypot", () => {
   test("a filled honeypot is a silent 200 with no effect", async () => {
     const f = fakes();
     const start = await startEmail(
-      { email: "ada@example.com", honeypot: "http://spam", locale: "de", challenge: undefined },
+      { email: "ada@example.com", honeypot: "http://spam", locale: "de", ip: "203.0.113.7", challenge: undefined },
       f.deps,
     );
     expect(start).toEqual({ status: 200, body: { ok: true } });
@@ -159,7 +169,10 @@ describe("closed mode and honeypot", () => {
 describe("e-mail code flow", () => {
   test("start: sends the code and returns the challenge cookie; a bad address is a 400", async () => {
     const f = fakes();
-    const r = await startEmail({ email: " Ada@Example.com", honeypot: "", locale: "it", challenge: undefined }, f.deps);
+    const r = await startEmail(
+      { email: " Ada@Example.com", honeypot: "", locale: "it", ip: "203.0.113.7", challenge: undefined },
+      f.deps,
+    );
     expect(r.status).toBe(200);
     expect(f.send).toHaveBeenCalledTimes(1);
     const [to, code, locale] = (f.send.mock.calls[0] ?? []) as unknown as [string, string, string];
@@ -167,20 +180,38 @@ describe("e-mail code flow", () => {
     const c = readChallenge(r.otp, SECRET);
     if (!c) throw new Error("no challenge");
     expect(checkCode(c, code, NOW, SECRET)).toBe("ok");
-    const bad = await startEmail({ email: "nope", honeypot: "", locale: "de", challenge: undefined }, f.deps);
+    const bad = await startEmail(
+      { email: "nope", honeypot: "", locale: "de", ip: "203.0.113.7", challenge: undefined },
+      f.deps,
+    );
     expect(bad).toEqual({ status: 400, body: { ok: false, reason: "invalid_email" } });
+  });
+
+  test("start: a failed server-side limit claim is a 429 rate_limited and sends nothing", async () => {
+    const f = fakes();
+    f.quota.mockImplementation(async () => false);
+    const r = await startEmail(
+      { email: "ada@example.com", honeypot: "", locale: "de", ip: "203.0.113.7", challenge: undefined },
+      f.deps,
+    );
+    expect(r).toEqual({ status: 429, body: { ok: false, reason: "rate_limited" } });
+    expect(f.quota).toHaveBeenCalledWith("ada@example.com", "203.0.113.7", NOW);
+    expect(f.send).not.toHaveBeenCalled();
   });
 
   test("start: a resend within 60 s is a 429; a mail failure is a 502 without challenge", async () => {
     const f = fakes();
     const { cookie } = createChallenge("ada@example.com", "123456", NOW - 1000, SECRET);
-    const again = await startEmail({ email: "ada@example.com", honeypot: "", locale: "de", challenge: cookie }, f.deps);
+    const again = await startEmail(
+      { email: "ada@example.com", honeypot: "", locale: "de", ip: "203.0.113.7", challenge: cookie },
+      f.deps,
+    );
     expect(again.status).toBe(429);
     f.send.mockImplementation(async () => {
       throw new Error("sparkpost 500");
     });
     const failed = await startEmail(
-      { email: "bob@example.com", honeypot: "", locale: "de", challenge: undefined },
+      { email: "bob@example.com", honeypot: "", locale: "de", ip: "203.0.113.7", challenge: undefined },
       f.deps,
     );
     expect(failed.status).toBe(502);
@@ -309,18 +340,97 @@ describe("SparkPost", () => {
     expect(body.recipients).toEqual([{ address: { email: "ada@example.com" } }]);
     expect(body.options).toEqual({ transactional: true });
     expect(body.content.from).toEqual({ name: "BEVMAQ Early Access", email: "hello@bevmaq.com" });
+    expect(body.content.reply_to).toBe("dev@bevmaq.com");
     expect(body.content.subject).toBe("Dein Code: 123456");
     expect(body.content.text).toContain("Dein Code: 123456");
     expect(body.content.html).toContain("123456");
   });
 
-  test("a refused transmission throws; the From defaults to am.bot@bevmaq.com", async () => {
+  test("a refused transmission throws; From defaults to early-access@, Reply-To to dev@ (never am.bot@)", async () => {
     const notOk = (async () => new Response("no", { status: 401 })) as unknown as typeof fetch;
     await expect(sendCodeMail("a@b.co", "123456", "en", COPY, { SPARKPOST_API_KEY: "k" }, notOk)).rejects.toThrow(
       "sparkpost 401",
     );
     expect(mailFrom(undefined)).toEqual({ name: "BEVMAQ", email: DEFAULT_MAIL_FROM });
-    expect(DEFAULT_MAIL_FROM).toBe("am.bot@bevmaq.com");
+    expect(DEFAULT_MAIL_FROM).toBe("early-access@bevmaq.com");
+    expect(DEFAULT_REPLY_TO).toBe("dev@bevmaq.com");
     expect(codeMail("123456", "it", COPY).html).toContain('lang="it"');
+  });
+});
+
+function memBlob() {
+  const store = new Map<string, string>();
+  const api = {
+    list: async ({ prefix = "" }: { prefix?: string }) => ({
+      blobs: [...store.keys()].filter((k) => k.startsWith(prefix)).map((pathname) => ({ pathname })),
+      hasMore: false,
+    }),
+    put: async (pathname: string, body: string, opts: Record<string, unknown>) => {
+      if (store.has(pathname) && !opts.allowOverwrite) throw new Error("This blob already exists");
+      store.set(pathname, body);
+      return { pathname };
+    },
+    get: async (pathname: string) =>
+      store.has(pathname) ? { statusCode: 200, stream: new Response(store.get(pathname)).body } : null,
+  };
+  return { api: api as unknown as BlobApi, store };
+}
+
+describe("code mail limits (Blob claims under ratelimit/)", () => {
+  const P = "early-access/local/";
+  const MIN = 60_000;
+
+  test("per email: one mail per 60 s bucket", async () => {
+    const b = memBlob();
+    const deps = (now: number) => ({ api: b.api, token: "t", prefix: P, now });
+    expect(await claimCodeMailQuota("ada@example.com", "1.2.3.4", deps(NOW))).toBe(true);
+    expect(await claimCodeMailQuota("ada@example.com", "1.2.3.4", deps(NOW + 5_000))).toBe(false);
+    expect(await claimCodeMailQuota("ADA@example.com", "5.6.7.8", deps(NOW + 10_000))).toBe(false);
+    expect(await claimCodeMailQuota("bob@example.com", "1.2.3.4", deps(NOW + 10_000))).toBe(true);
+    expect(await claimCodeMailQuota("ada@example.com", "1.2.3.4", deps(NOW + MIN))).toBe(true);
+    const keys = [...b.store.keys()];
+    expect(keys.every((k) => k.startsWith(`${P}ratelimit/`))).toBe(true);
+    expect(keys.some((k) => k.includes("ada@") || k.includes("1.2.3.4"))).toBe(false);
+  });
+
+  test("per email: at most 5 per UTC day, the next UTC day starts over", async () => {
+    const b = memBlob();
+    const start = Date.UTC(2026, 8, 28, 0, 0);
+    const results: boolean[] = [];
+    for (let i = 0; i < 6; i++) {
+      results.push(
+        await claimCodeMailQuota("ada@example.com", `10.0.0.${i}`, {
+          api: b.api,
+          token: "t",
+          prefix: P,
+          now: start + i * MIN,
+        }),
+      );
+    }
+    expect(results).toEqual([true, true, true, true, true, false]);
+    const nextDay = Date.UTC(2026, 8, 29, 0, 1);
+    expect(
+      await claimCodeMailQuota("ada@example.com", "10.0.1.1", { api: b.api, token: "t", prefix: P, now: nextDay }),
+    ).toBe(true);
+  });
+
+  test("per IP: at most 20 per UTC day across addresses", async () => {
+    const b = memBlob();
+    const results: boolean[] = [];
+    for (let i = 0; i < CODE_MAIL_PER_IP_DAY + 1; i++) {
+      results.push(
+        await claimCodeMailQuota(`user${i}@example.com`, "198.51.100.9", {
+          api: b.api,
+          token: "t",
+          prefix: P,
+          now: NOW,
+        }),
+      );
+    }
+    expect(results.filter(Boolean)).toHaveLength(20);
+    expect(results.at(-1)).toBe(false);
+    expect(
+      await claimCodeMailQuota("other@example.com", "198.51.100.10", { api: b.api, token: "t", prefix: P, now: NOW }),
+    ).toBe(true);
   });
 });
