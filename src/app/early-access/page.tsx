@@ -43,7 +43,7 @@ export default async function EarlyAccessPage({
       footer={
         <a
           href={teamHref}
-          className="font-mono text-[12px] tracking-[0.04em] text-dim no-underline underline-offset-4 transition-colors hover:text-muted hover:underline"
+          className="-my-3.5 inline-flex min-h-11 items-center font-mono text-[12px] tracking-[0.04em] text-dim no-underline underline-offset-4 transition-colors hover:text-muted hover:underline"
         >
           {t.teamEntry}
         </a>
@@ -127,7 +127,7 @@ function WaitlistView({ t, email, number }: { t: GateCopy; email: string; number
         <span aria-hidden="true">·</span>
         <button
           type="submit"
-          className="cursor-pointer border-0 bg-transparent p-0 font-mono text-[12px] text-blue-soft underline-offset-4 hover:text-text hover:underline"
+          className="-my-3 inline-flex min-h-11 cursor-pointer items-center border-0 bg-transparent p-0 font-mono text-[12px] text-blue-soft underline-offset-4 hover:text-text hover:underline"
         >
           {t.signOut}
         </button>

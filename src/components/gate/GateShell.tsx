@@ -6,8 +6,10 @@ import s from "./gate.module.css";
 
 const STATUS = "PRIVATE PREVIEW · CIBUS TEC 2026";
 
+// Capped at (100vw - 2rem) / 6.6 on phones: the widest headline word, "Congratulations.", sets 6.44 em wide, so at
+// 52px it ran past a 320px viewport. From 375px up the cap does not bind and the clamp is unchanged.
 export const HEADLINE =
-  "m-0 font-display text-[clamp(52px,11vw,112px)] leading-[0.92] font-extrabold tracking-[0.005em] text-balance";
+  "m-0 font-display text-[length:min(clamp(52px,11vw,112px),calc((100vw_-_2rem)/6.6))] leading-[0.92] font-extrabold tracking-[0.005em] text-balance";
 export const LEDE = "m-0 text-[18px] leading-[1.55] text-text sm:text-[20px]";
 
 export function Kicker({ children }: { children: ReactNode }) {
@@ -47,18 +49,23 @@ export function GateShell({
         </div>
         <nav aria-label="Language" className="flex items-center gap-1 font-mono text-[12px] tracking-[0.08em]">
           {LOCALES.map((l) => (
+            // The link is the 44px tap target (the negative margin keeps the header height); the pill is the span.
             <a
               key={l}
               href={`/api/early-access/lang?l=${l}${extra}`}
               hrefLang={l}
               aria-current={l === locale ? "true" : undefined}
-              className={`rounded-full px-2.5 py-1.5 no-underline transition-colors ${
-                l === locale
-                  ? "border border-blue/40 bg-blue/10 text-blue-soft"
-                  : "border border-transparent text-dim hover:text-text"
-              }`}
+              className="group -my-1.5 inline-flex min-h-11 items-center rounded-full no-underline"
             >
-              {l.toUpperCase()}
+              <span
+                className={`rounded-full px-2.5 py-1.5 transition-colors ${
+                  l === locale
+                    ? "border border-blue/40 bg-blue/10 text-blue-soft"
+                    : "border border-transparent text-dim group-hover:text-text"
+                }`}
+              >
+                {l.toUpperCase()}
+              </span>
             </a>
           ))}
         </nav>

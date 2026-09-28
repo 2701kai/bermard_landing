@@ -39,7 +39,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
       <h1 className={`${HEADLINE} mt-5 text-orange`}>{t.teamHeadline}</h1>
       {session && team ? (
         <>
-          <p className={`${LEDE} mt-7`}>{t.teamSignedIn.replace("{email}", session.id)}</p>
+          <p className={`${LEDE} mt-7 [overflow-wrap:anywhere]`}>{t.teamSignedIn.replace("{email}", session.id)}</p>
           <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
             <a
               href={next}
@@ -50,7 +50,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
             <form method="post" action="/api/early-access/signout?from=team" className="m-0">
               <button
                 type="submit"
-                className="cursor-pointer border-0 bg-transparent p-0 font-mono text-[12.5px] text-dim underline-offset-4 hover:text-muted hover:underline"
+                className="-my-3 inline-flex min-h-11 cursor-pointer items-center border-0 bg-transparent p-0 font-mono text-[12.5px] text-dim underline-offset-4 hover:text-muted hover:underline"
               >
                 {t.signOut}
               </button>
@@ -61,7 +61,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
               {t.teamCount.replace("{count}", String(count))}{" "}
               <a
                 href="/api/early-access/export"
-                className="text-blue-soft underline underline-offset-4 hover:text-text"
+                className="-my-3.5 inline-flex min-h-11 items-center text-blue-soft underline underline-offset-4 hover:text-text"
                 download
               >
                 {t.teamCsv}

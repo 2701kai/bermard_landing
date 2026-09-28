@@ -125,18 +125,23 @@ export function AltSignup({ t, next }: { t: GateCopy; next: string }) {
       </div>
       <fieldset className="m-0 flex gap-2 border-0 p-0">
         {(["email", "phone"] as const).map((k) => (
+          // The button is the 44px tap target (the negative margin keeps the row height); the pill is the span.
           <button
             key={k}
             type="button"
             aria-pressed={tab === k}
             onClick={() => pick(tab === k ? null : k)}
-            className={`flex-1 cursor-pointer rounded-full border px-4 py-2 font-mono text-[12px] tracking-[0.06em] transition-colors ${
-              tab === k
-                ? "border-blue/40 bg-blue/10 text-blue-soft"
-                : "border-line bg-transparent text-muted hover:border-blue/40 hover:text-text"
-            }`}
+            className="group -my-1 flex min-h-11 flex-1 cursor-pointer items-center rounded-full border-0 bg-transparent p-0"
           >
-            {k === "email" ? t.tabEmail : t.tabPhone}
+            <span
+              className={`w-full rounded-full border px-4 py-2 font-mono text-[12px] tracking-[0.06em] transition-colors ${
+                tab === k
+                  ? "border-blue/40 bg-blue/10 text-blue-soft"
+                  : "border-line text-muted group-hover:border-blue/40 group-hover:text-text"
+              }`}
+            >
+              {k === "email" ? t.tabEmail : t.tabPhone}
+            </span>
           </button>
         ))}
       </fieldset>
@@ -156,7 +161,9 @@ export function AltSignup({ t, next }: { t: GateCopy; next: string }) {
 
       {tab === "email" && step === "code" && (
         <form onSubmit={onCode} className="relative m-0 flex flex-col gap-3">
-          <p className="m-0 text-[15px] leading-[1.55] text-text">{t.codeSent.replace("{email}", email)}</p>
+          <p className="m-0 text-[15px] leading-[1.55] [overflow-wrap:anywhere] text-text">
+            {t.codeSent.replace("{email}", email)}
+          </p>
           <label className="flex flex-col gap-2">
             <span className={LABEL}>{t.codeLabel}</span>
             <input
@@ -178,7 +185,7 @@ export function AltSignup({ t, next }: { t: GateCopy; next: string }) {
               type="button"
               disabled={busy}
               onClick={() => (Date.now() - sentAt >= RESEND_MS ? sendCode(email, "") : setReason(null))}
-              className="cursor-pointer border-0 bg-transparent p-0 font-mono text-[12px] text-dim underline-offset-4 hover:text-muted hover:underline disabled:cursor-not-allowed"
+              className="-my-3 inline-flex min-h-11 cursor-pointer items-center border-0 bg-transparent p-0 font-mono text-[12px] text-dim underline-offset-4 hover:text-muted hover:underline disabled:cursor-not-allowed"
             >
               {t.codeResend}
             </button>

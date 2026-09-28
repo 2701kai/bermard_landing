@@ -32,6 +32,12 @@ function initializeOnce(google: { accounts: { id: GoogleAccountsId } }, clientId
   initializedFor = clientId;
 }
 
+// renderButton's width is the minimum button width, at most 400px (GIS js-reference); following the column keeps
+// the button inside it on a 320px phone.
+function buttonWidth(el: HTMLElement): number {
+  return Math.max(200, Math.min(400, Math.floor(el.clientWidth)));
+}
+
 export function GoogleButton({
   next,
   locale,
@@ -79,13 +85,26 @@ export function GoogleButton({
         setBusy(false);
       };
       initializeOnce(window.google, CLIENT_ID);
-      window.google.accounts.id.renderButton(el, {
-        theme: "filled_black",
-        shape: "pill",
-        size: "large",
-        text,
-        locale,
-      });
+      const google = window.google;
+      let width = 0;
+      const render = () => {
+        const w = buttonWidth(el);
+        if (w === width) return;
+        width = w;
+        google.accounts.id.renderButton(el, {
+          theme: "filled_black",
+          shape: "pill",
+          size: "large",
+          text,
+          locale,
+          width: w,
+        });
+      };
+      render();
+      // A rotation changes the column width: render again at the new width.
+      const observer = new ResizeObserver(render);
+      observer.observe(el);
+      return () => observer.disconnect();
     },
     [next, locale, text, intent],
   );
@@ -97,10 +116,10 @@ export function GoogleButton({
     <div className="flex flex-col gap-3">
       <Script src="https://accounts.google.com/gsi/client" onReady={() => setGsiReady(true)} />
       <div
-        className={`min-h-[44px] transition-opacity ${busy ? "pointer-events-none opacity-50" : ""}`}
+        className={`min-h-[44px] max-w-full transition-opacity ${busy ? "pointer-events-none opacity-50" : ""}`}
         aria-busy={busy}
       >
-        {gsiReady && <div ref={mountButton} />}
+        {gsiReady && <div ref={mountButton} className="max-w-full" />}
       </div>
       {error === "not_team" && nonTeam ? (
         <p role="alert" className="m-0 font-mono text-[12.5px] leading-[1.6] text-orange-soft">
