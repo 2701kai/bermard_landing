@@ -26,9 +26,9 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
     <GateShell locale={locale} next={next} from="team">
       <Kicker>{t.teamKicker}</Kicker>
       <h1 className={`${HEADLINE} mt-5 text-orange`}>{t.teamHeadline}</h1>
-      {session && isTeamEmail(session.email) ? (
+      {session && isTeamEmail(session.id) ? (
         <>
-          <p className={`${LEDE} mt-7`}>{t.teamSignedIn.replace("{email}", session.email)}</p>
+          <p className={`${LEDE} mt-7`}>{t.teamSignedIn.replace("{email}", session.id)}</p>
           <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
             <a
               href={next}

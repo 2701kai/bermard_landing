@@ -23,8 +23,10 @@ export function parseAllow(raw: string | undefined): Set<string> {
 
 const TEAM_DOMAIN = "bevmaq.com";
 
+/** Team by the session id: a @bevmaq.com email or one on GATE_ALLOW. A phone id (no '@') is never team. */
 export function isTeamEmail(email: string, allowRaw: string | undefined = process.env.GATE_ALLOW): boolean {
   const e = email.trim().toLowerCase();
+  if (!e.includes("@")) return false;
   return e.endsWith(`@${TEAM_DOMAIN}`) || parseAllow(allowRaw).has(e);
 }
 

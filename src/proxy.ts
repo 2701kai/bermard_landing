@@ -21,7 +21,7 @@ export function proxy(req: NextRequest) {
   if (pathname === TEAM_PAGE) return noindex(NextResponse.next());
 
   const verified = verifySession(req.cookies.get(SESSION_COOKIE)?.value);
-  const team = verified !== null && isTeamEmail(verified.email);
+  const team = verified !== null && isTeamEmail(verified.id);
   const session = team || publicMode() ? verified : null;
 
   if (pathname === GATE_PAGE) {

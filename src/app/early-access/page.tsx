@@ -1,10 +1,12 @@
 // The early-access gate page. Closed mode (default): kicker, headline, lede and the closed line.
-// Public mode (GATE_PUBLIC=on): the sign-up view without a session, the waitlist view with an early-adopter session.
+// Public mode (GATE_PUBLIC=on): the sign-up view (Google, e-mail code, phone callback) without a session, the waitlist
+// view with an early-adopter session.
 // Both end on a quiet link to /team, the staff sign-in.
 // A team session never lands here (src/proxy.ts redirects it to `next`; the check below covers GATE=off).
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { AltSignup } from "@/components/gate/AltSignup";
 import { GateShell, HEADLINE, Kicker, LEDE } from "@/components/gate/GateShell";
 import { GoogleButton } from "@/components/gate/GoogleButton";
 import { GATE_COPY, type GateCopy } from "@/content/early-access";
@@ -28,7 +30,7 @@ export default async function EarlyAccessPage({
   const jar = await cookies();
   const locale = pickLocale(jar.get(LANG_COOKIE)?.value, (await headers()).get("accept-language"));
   const session = verifySession(jar.get(SESSION_COOKIE)?.value);
-  if (session && isTeamEmail(session.email)) redirect(next);
+  if (session && isTeamEmail(session.id)) redirect(next);
   const isPublic = publicMode();
 
   const t = GATE_COPY[locale];
@@ -50,7 +52,7 @@ export default async function EarlyAccessPage({
       {!isPublic ? (
         <ClosedView t={t} />
       ) : session && session.number !== null ? (
-        <WaitlistView t={t} email={session.email} number={session.number + OFFSET} />
+        <WaitlistView t={t} email={session.id} number={session.number + OFFSET} />
       ) : (
         <GateView t={t} next={next} locale={locale} />
       )}
@@ -85,6 +87,7 @@ function GateView({ t, next, locale }: { t: GateCopy; next: string; locale: Loca
           errorText={t.error}
           notConfiguredText={t.notConfigured}
         />
+        <AltSignup t={t} next={next} />
       </div>
       <p className="m-0 mt-8 max-w-[520px] text-[12.5px] leading-[1.6] text-dim">
         {t.fine}

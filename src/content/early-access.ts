@@ -37,6 +37,29 @@ export type GateCopy = {
   /** `{email}` is replaced. */
   teamSignedIn: string;
   teamContinue: string;
+  /** Public mode: the e-mail code and phone callback alternatives under the Google button. */
+  or: string;
+  tabEmail: string;
+  tabPhone: string;
+  emailLabel: string;
+  emailSend: string;
+  /** `{email}` is replaced. */
+  codeSent: string;
+  codeLabel: string;
+  codeConfirm: string;
+  codeResend: string;
+  codeWrong: string;
+  codeExpired: string;
+  phoneName: string;
+  phoneLabel: string;
+  phonePlaceholder: string;
+  phoneSubmit: string;
+  phoneHint: string;
+  phoneInvalid: string;
+  /** The code mail; `{code}` is replaced. */
+  mailSubject: string;
+  mailLine: string;
+  mailValidity: string;
 };
 
 // bevmaq.com serves /de/privacy/ and /privacy/ (200); /it/privacy/ is a 404, so Italian links the English page.
@@ -53,7 +76,7 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     fair: "Live zu sehen auf der CIBUS TEC 2026 in Parma.",
     closedLine: "Wir öffnen den Zugang in kleinen Runden. Die erste startet auf der CIBUS TEC 2026 in Parma.",
     teamEntry: "BEVMAQ-Team? Hier anmelden.",
-    fine: "Mit der Registrierung speichern wir deinen Namen und deine E-Mail-Adresse, um dich zum Early Access zu kontaktieren. Details in der ",
+    fine: "Mit der Registrierung speichern wir deinen Namen und deine E-Mail-Adresse oder Telefonnummer, um dich zum Early Access zu kontaktieren. Details in der ",
     privacyLink: "Datenschutzerklärung",
     privacyUrl: PRIVACY_DE,
     error: "Das hat nicht geklappt. Versuch es bitte noch einmal.",
@@ -72,6 +95,26 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     teamNonTeamLink: "Als Early Adopter registrierst du dich hier.",
     teamSignedIn: "Angemeldet als {email}.",
     teamContinue: "Weiter",
+    or: "oder",
+    tabEmail: "Mit E-Mail",
+    tabPhone: "Mit Telefon",
+    emailLabel: "E-Mail-Adresse",
+    emailSend: "Code senden",
+    codeSent: "Wir haben dir einen 6-stelligen Code an {email} geschickt.",
+    codeLabel: "Code",
+    codeConfirm: "Bestätigen",
+    codeResend: "Code erneut senden",
+    codeWrong: "Der Code stimmt nicht.",
+    codeExpired: "Der Code ist abgelaufen. Fordere einen neuen an.",
+    phoneName: "Name",
+    phoneLabel: "Telefonnummer mit Ländervorwahl",
+    phonePlaceholder: "+49 …",
+    phoneSubmit: "Rückruf anfordern",
+    phoneHint: "Wir rufen dich an, sobald deine Runde startet.",
+    phoneInvalid: "Bitte gib die Nummer mit Ländervorwahl an, zum Beispiel +49.",
+    mailSubject: "Dein Code für BEVMAQ Early Access: {code}",
+    mailLine: "Dein Code: {code}",
+    mailValidity: "Er gilt 15 Minuten. Wenn du dich nicht registriert hast, ignoriere diese E-Mail einfach.",
   },
   en: {
     kicker: "EARLY ACCESS · BY INVITATION",
@@ -82,7 +125,7 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     fair: "See it live at CIBUS TEC 2026 in Parma.",
     closedLine: "We're opening access in small rounds. The first one starts at CIBUS TEC 2026 in Parma.",
     teamEntry: "BEVMAQ team? Sign in here.",
-    fine: "When you register, we store your name and email address to contact you about early access. Details in our ",
+    fine: "When you register, we store your name and your email address or phone number to contact you about early access. Details in our ",
     privacyLink: "privacy policy",
     privacyUrl: PRIVACY_EN,
     error: "That didn't work. Please try again.",
@@ -100,6 +143,26 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     teamNonTeamLink: "Register as an early adopter here.",
     teamSignedIn: "Signed in as {email}.",
     teamContinue: "Continue",
+    or: "or",
+    tabEmail: "With email",
+    tabPhone: "With phone",
+    emailLabel: "Email address",
+    emailSend: "Send code",
+    codeSent: "We sent a 6-digit code to {email}.",
+    codeLabel: "Code",
+    codeConfirm: "Confirm",
+    codeResend: "Send the code again",
+    codeWrong: "That code isn't right.",
+    codeExpired: "That code has expired. Request a new one.",
+    phoneName: "Name",
+    phoneLabel: "Phone number with country code",
+    phonePlaceholder: "+44 …",
+    phoneSubmit: "Request a callback",
+    phoneHint: "We'll call you as soon as your round opens.",
+    phoneInvalid: "Please include the country code, for example +49.",
+    mailSubject: "Your BEVMAQ Early Access code: {code}",
+    mailLine: "Your code: {code}",
+    mailValidity: "It is valid for 15 minutes. If you didn't sign up, just ignore this email.",
   },
   it: {
     kicker: "EARLY ACCESS · SU INVITO",
@@ -110,7 +173,7 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     fair: "Dal vivo a CIBUS TEC 2026, Parma.",
     closedLine: "Apriamo l'accesso a piccoli gruppi. Il primo parte a CIBUS TEC 2026, Parma.",
     teamEntry: "Team BEVMAQ? Accedi qui.",
-    fine: "Con la registrazione salviamo il tuo nome e il tuo indirizzo email per contattarti sull'early access. Dettagli nell'",
+    fine: "Con la registrazione salviamo il tuo nome e il tuo indirizzo email o numero di telefono per contattarti sull'early access. Dettagli nell'",
     privacyLink: "informativa sulla privacy",
     privacyUrl: PRIVACY_EN,
     error: "Qualcosa è andato storto. Riprova.",
@@ -128,5 +191,25 @@ export const GATE_COPY: Record<Locale, GateCopy> = {
     teamNonTeamLink: "Registrati come early adopter qui.",
     teamSignedIn: "Accesso come {email}.",
     teamContinue: "Continua",
+    or: "oppure",
+    tabEmail: "Con email",
+    tabPhone: "Con telefono",
+    emailLabel: "Indirizzo email",
+    emailSend: "Invia codice",
+    codeSent: "Ti abbiamo inviato un codice di 6 cifre a {email}.",
+    codeLabel: "Codice",
+    codeConfirm: "Conferma",
+    codeResend: "Invia di nuovo il codice",
+    codeWrong: "Il codice non è corretto.",
+    codeExpired: "Il codice è scaduto. Richiedine uno nuovo.",
+    phoneName: "Nome",
+    phoneLabel: "Numero di telefono con prefisso internazionale",
+    phonePlaceholder: "+39 …",
+    phoneSubmit: "Richiedi una chiamata",
+    phoneHint: "Ti chiamiamo appena si apre il tuo turno.",
+    phoneInvalid: "Inserisci il numero con il prefisso internazionale, per esempio +39.",
+    mailSubject: "Il tuo codice BEVMAQ Early Access: {code}",
+    mailLine: "Il tuo codice: {code}",
+    mailValidity: "È valido per 15 minuti. Se non ti sei registrato, ignora questa email.",
   },
 };

@@ -1,5 +1,6 @@
 // Early-adopter registry in the shared private Vercel Blob store (the same store bevmardo_c's db/index.ts writes).
-// early-access/<VERCEL_ENV|local>/people/<sha256(email)>.json holds one person; seq/<n>.json claims number n.
+// early-access/<VERCEL_ENV|local>/people/<sha256(identifier)>.json holds one person (identifier: lowercased email or
+// E.164 phone); seq/<n>.json claims number n; otp/<challenge id>/<n>.json records the n-th wrong e-mail code.
 import { createHash } from "node:crypto";
 import { get, list, put } from "@vercel/blob";
 
@@ -7,15 +8,32 @@ import { get, list, put } from "@vercel/blob";
 export const OFFSET = 1947;
 export const MAX_CLAIM_TRIES = 20;
 
+export type Source = "google" | "email" | "phone";
+
 export type Person = {
-  email: string;
+  email?: string;
+  phone?: string;
   name: string;
   /** The seq index; the displayed number is number + OFFSET. */
   number: number;
   host: string;
   locale: string;
+  source: Source;
+  /** Google and the e-mail code verify the address; a callback request's phone number is unverified. */
+  verified: boolean;
   first_seen: string;
   last_seen: string;
+};
+
+/** Who signs up: exactly one of email (lowercased) or phone (E.164). */
+export type Registrant = {
+  email?: string;
+  phone?: string;
+  name: string;
+  host: string;
+  locale: string;
+  source: Source;
+  verified: boolean;
 };
 
 /** The three @vercel/blob calls the registry makes; tests pass a fake. */
@@ -33,8 +51,9 @@ function envToken(): string {
   return t;
 }
 
-export function emailKey(email: string): string {
-  return createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
+/** sha256 of the identifier: the lowercased email, or the E.164 phone number as is. */
+export function personKey(identifier: string): string {
+  return createHash("sha256").update(identifier.trim().toLowerCase()).digest("hex");
 }
 
 async function readJson<T>(api: BlobApi, pathname: string, token: string): Promise<T | null> {
@@ -81,31 +100,37 @@ export async function claimNumber(api: BlobApi, prefix: string, token: string, m
   throw new Error("Could not claim an early-adopter number");
 }
 
-/** Registers a person once. A returning person keeps the number and gets last_seen (and name) updated. */
+/** Registers a person once. A returning person keeps the number and gets last_seen (and name, verified) updated. */
 export async function registerPerson(
-  who: { email: string; name: string; host: string; locale: string },
+  who: Registrant,
   deps: { api?: BlobApi; token?: string; prefix?: string; now?: () => Date } = {},
 ): Promise<{ number: number; first: boolean }> {
   const api = deps.api ?? realBlob;
   const token = deps.token ?? envToken();
   const prefix = deps.prefix ?? storePrefix();
   const now = (deps.now ?? (() => new Date()))().toISOString();
-  const key = emailKey(who.email);
+  const email = who.email?.trim().toLowerCase();
+  const identifier = email ?? who.phone;
+  if (!identifier) throw new Error("Registrant without email or phone");
+  const key = personKey(identifier);
   const personPath = `${prefix}people/${key}.json`;
 
   const existing = await readJson<Person>(api, personPath, token);
   if (existing) {
-    await writeJson(api, personPath, { ...existing, name: who.name || existing.name, last_seen: now }, token, true);
+    const update = { ...existing, name: who.name || existing.name, verified: existing.verified || who.verified };
+    await writeJson(api, personPath, { ...update, last_seen: now }, token, true);
     return { number: existing.number, first: false };
   }
 
   const number = await claimNumber(api, prefix, token, { key, at: now });
   const person: Person = {
-    email: who.email.trim().toLowerCase(),
+    ...(email ? { email } : { phone: who.phone }),
     name: who.name,
     number,
     host: who.host,
     locale: who.locale,
+    source: who.source,
+    verified: who.verified,
     first_seen: now,
     last_seen: now,
   };
@@ -120,14 +145,37 @@ export async function registerPerson(
   return { number, first: true };
 }
 
-export function telegramText(p: { number: number; name: string; email: string; host: string; locale: string }) {
-  return `🆕 Early adopter Nr. ${p.number + OFFSET}: ${p.name} ${p.email} via ${p.host} (${p.locale})`;
+/** Each wrong e-mail code claims otp/<cid>/<n>.json exclusively, n being the tries count its cookie carried. A replayed
+ *  challenge cookie (an old tries count) hits a slot that is already taken: false, and the challenge counts as spent. */
+export async function claimOtpAttempt(
+  cid: string,
+  n: number,
+  deps: { api?: BlobApi; token?: string; prefix?: string } = {},
+): Promise<boolean> {
+  const api = deps.api ?? realBlob;
+  const token = deps.token ?? envToken();
+  if (!/^[A-Za-z0-9_-]{8,64}$/.test(cid) || !Number.isInteger(n) || n < 0) return false;
+  const pathname = `${deps.prefix ?? storePrefix()}otp/${cid}/${n}.json`;
+  try {
+    await writeJson(api, pathname, { at: new Date().toISOString() }, token, false);
+    return true;
+  } catch (e) {
+    if ((await readJson(api, pathname, token)) === null) throw e;
+    return false;
+  }
+}
+
+export type Ping = { number: number; name: string; email?: string; phone?: string; host: string; locale: string };
+
+export function telegramText(p: Ping) {
+  const who = p.phone ? `${p.name} ${p.phone} (phone, unverified)` : [p.name, p.email].filter(Boolean).join(" ");
+  return `🆕 Early adopter Nr. ${p.number + OFFSET}: ${who} via ${p.host} (${p.locale})`;
 }
 
 /** First registration ping. Production only; elsewhere a dry-run log line without name or email.
  *  Never throws: a failed ping must not block the sign-in. */
 export async function notifyTelegram(
-  p: { number: number; name: string; email: string; host: string; locale: string },
+  p: Ping,
   env: Record<string, string | undefined> = process.env,
   fetchImpl: typeof fetch = fetch,
 ): Promise<"sent" | "dry-run" | "failed"> {

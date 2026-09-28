@@ -12,7 +12,7 @@ const NOW = Date.UTC(2026, 8, 28);
 const DAY = 86_400_000;
 
 describe("session cookie", () => {
-  const data = { email: "ada@example.com", name: "Ada", number: 1 };
+  const data = { id: "ada@example.com", name: "Ada", number: 1 };
 
   test("sign then verify round-trips the payload with a 30-day expiry", () => {
     const s = verifySession(signSession(data, NOW, SECRET), NOW, SECRET);
@@ -26,7 +26,7 @@ describe("session cookie", () => {
   test("a tampered payload or signature fails", () => {
     const cookie = signSession(data, NOW, SECRET);
     const [payload = "", sig = ""] = cookie.split(".");
-    const forged = Buffer.from(JSON.stringify({ ...data, email: "boss@bevmaq.com", exp: NOW + DAY })).toString(
+    const forged = Buffer.from(JSON.stringify({ ...data, id: "boss@bevmaq.com", exp: NOW + DAY })).toString(
       "base64url",
     );
     expect(verifySession(`${forged}.${sig}`, NOW, SECRET)).toBeNull();
@@ -203,7 +203,14 @@ describe("number claim", () => {
     const b = fakeBlob();
     let t = NOW;
     const deps = { api: b.api, token: "t", prefix: P, now: () => new Date(t) };
-    const who = { email: "Ada@Example.com", name: "Ada", host: "coming-soon.bevmaq.com", locale: "de" };
+    const who = {
+      email: "Ada@Example.com",
+      name: "Ada",
+      host: "coming-soon.bevmaq.com",
+      locale: "de",
+      source: "google" as const,
+      verified: true,
+    };
     expect(await registerPerson(who, deps)).toEqual({ number: 1, first: true });
     t += DAY;
     expect(await registerPerson({ ...who, email: "ada@example.com" }, deps)).toEqual({ number: 1, first: false });
@@ -214,6 +221,19 @@ describe("number claim", () => {
     expect(ada).toMatchObject({ number: 1, locale: "de", host: "coming-soon.bevmaq.com" });
     expect(ada.first_seen).toBe(new Date(NOW).toISOString());
     expect(ada.last_seen).toBe(new Date(NOW + DAY).toISOString());
+    expect(ada).toMatchObject({ source: "google", verified: true });
+    const phone = {
+      phone: "+4915112345678",
+      name: "Bo",
+      host: "h",
+      locale: "de",
+      source: "phone" as const,
+      verified: false,
+    };
+    expect(await registerPerson(phone, deps)).toEqual({ number: 3, first: true });
+    const bo = [...b.store.values()].map((v) => JSON.parse(v)).find((v) => v.phone === "+4915112345678");
+    expect(bo).toMatchObject({ name: "Bo", source: "phone", verified: false });
+    expect(bo.email).toBeUndefined();
   });
 });
 
@@ -295,7 +315,7 @@ describe("login modes", () => {
     expect(r).toEqual({
       status: 200,
       redirect: "/console?x=1",
-      session: { email: "kai@bevmaq.com", name: "N", number: null },
+      session: { id: "kai@bevmaq.com", name: "N", number: null },
     });
     expect(s.register).not.toHaveBeenCalled();
   });
@@ -306,13 +326,15 @@ describe("login modes", () => {
     expect(r).toEqual({
       status: 200,
       redirect: "/early-access",
-      session: { email: "ada@gmail.com", name: "N", number: 7 },
+      session: { id: "ada@gmail.com", name: "N", number: 7 },
     });
     expect(s.register).toHaveBeenCalledWith({
       email: "ada@gmail.com",
       name: "N",
       host: "coming-soon.bevmaq.com",
       locale: "de",
+      source: "google",
+      verified: true,
     });
     expect(s.notify).toHaveBeenCalledTimes(1);
   });
@@ -347,7 +369,7 @@ describe("login modes", () => {
     expect(ok).toEqual({
       status: 200,
       redirect: "/console?x=1",
-      session: { email: "kai@bevmaq.com", name: "N", number: null },
+      session: { id: "kai@bevmaq.com", name: "N", number: null },
     });
     for (const next of ["//evil.com", "/team", null]) {
       const r = await login({ ...input, next, intent: "team" }, { ...s.deps, verify: claims("kai@bevmaq.com") });
@@ -357,7 +379,7 @@ describe("login modes", () => {
       { ...input, intent: "team" },
       { ...s.deps, allow: "ada@gmail.com", verify: claims("ada@gmail.com"), isPublic: false },
     );
-    expect(allowed.session?.email).toBe("ada@gmail.com");
+    expect(allowed.session?.id).toBe("ada@gmail.com");
     expect(s.register).not.toHaveBeenCalled();
   });
 

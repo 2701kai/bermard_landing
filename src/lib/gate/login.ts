@@ -40,7 +40,7 @@ export async function login(
     return {
       status: 200,
       redirect: sanitizeNextPath(input.next),
-      session: { email: claims.email, name: claims.name, number: null },
+      session: { id: claims.email, name: claims.name, number: null },
     };
   }
   if (!(deps.isPublic ?? publicMode())) return { status: 403 };
@@ -48,10 +48,17 @@ export async function login(
   const register = deps.register ?? registerPerson;
   const notify = deps.notify ?? notifyTelegram;
   try {
-    const who = { email: claims.email, name: claims.name, host: input.host, locale: input.locale };
+    const who = {
+      email: claims.email,
+      name: claims.name,
+      host: input.host,
+      locale: input.locale,
+      source: "google" as const,
+      verified: true,
+    };
     const r = await register(who);
     if (r.first) await notify({ ...who, number: r.number });
-    return { status: 200, redirect: GATE_PAGE, session: { email: claims.email, name: claims.name, number: r.number } };
+    return { status: 200, redirect: GATE_PAGE, session: { id: claims.email, name: claims.name, number: r.number } };
   } catch (e) {
     console.error("[early-access] registration failed", e instanceof Error ? e.message : "unknown");
     return { status: 503 };
