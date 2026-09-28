@@ -21,6 +21,17 @@ declare global {
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
+// GIS warns when google.accounts.id.initialize() runs more than once per page, so it runs once per client id and its
+// callback hands the credential to the handler of the button that mounted last (next, intent differ per page).
+let initializedFor: string | null = null;
+let onCredential: ((r: GsiCredentialResponse) => void) | null = null;
+
+function initializeOnce(google: { accounts: { id: GoogleAccountsId } }, clientId: string) {
+  if (initializedFor === clientId) return;
+  google.accounts.id.initialize({ client_id: clientId, callback: (r) => onCredential?.(r) });
+  initializedFor = clientId;
+}
+
 export function GoogleButton({
   next,
   locale,
@@ -47,29 +58,27 @@ export function GoogleButton({
   const mountButton = useCallback(
     (el: HTMLDivElement | null) => {
       if (!el || !CLIENT_ID || !window.google) return;
-      window.google.accounts.id.initialize({
-        client_id: CLIENT_ID,
-        callback: async (r) => {
-          setBusy(true);
-          setError(null);
-          try {
-            const res = await fetch("/api/early-access/login", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ credential: r.credential, next, intent }),
-            });
-            const data = (await res.json()) as { ok?: boolean; redirect?: unknown; reason?: unknown };
-            if (res.ok && data.ok && typeof data.redirect === "string") {
-              window.location.assign(data.redirect);
-              return;
-            }
-            setError(data.reason === "not_team" ? "not_team" : "error");
-          } catch {
-            setError("error");
+      onCredential = async (r) => {
+        setBusy(true);
+        setError(null);
+        try {
+          const res = await fetch("/api/early-access/login", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ credential: r.credential, next, intent }),
+          });
+          const data = (await res.json()) as { ok?: boolean; redirect?: unknown; reason?: unknown };
+          if (res.ok && data.ok && typeof data.redirect === "string") {
+            window.location.assign(data.redirect);
+            return;
           }
-          setBusy(false);
-        },
-      });
+          setError(data.reason === "not_team" ? "not_team" : "error");
+        } catch {
+          setError("error");
+        }
+        setBusy(false);
+      };
+      initializeOnce(window.google, CLIENT_ID);
       window.google.accounts.id.renderButton(el, {
         theme: "filled_black",
         shape: "pill",
