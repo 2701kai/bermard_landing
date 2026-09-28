@@ -309,6 +309,14 @@ describe("login modes", () => {
     expect(s.notify).not.toHaveBeenCalled();
   });
 
+  test("team Google login: no deep link lands on /team, a deep link wins", async () => {
+    const s = spies();
+    const deps = { ...s.deps, verify: claims("kai@bevmaq.com") };
+    for (const next of [null, "/", "//evil.com"])
+      expect((await login({ ...input, next }, deps)).redirect).toBe("/team");
+    expect((await login({ ...input, next: "/s/abc" }, deps)).redirect).toBe("/s/abc");
+  });
+
   test("closed mode: team signs in to `next` without a number", async () => {
     const s = spies();
     const r = await login(input, { ...s.deps, verify: claims("kai@bevmaq.com"), isPublic: false });
@@ -360,7 +368,7 @@ describe("login modes", () => {
     }
   });
 
-  test("staff sign-in (intent team): a team account gets a session and a sanitized next", async () => {
+  test("staff sign-in (intent team): a team account gets a session and stays on /team, next kept for Continue", async () => {
     const s = spies();
     const ok = await login(
       { ...input, intent: "team" },
@@ -368,12 +376,12 @@ describe("login modes", () => {
     );
     expect(ok).toEqual({
       status: 200,
-      redirect: "/console?x=1",
+      redirect: "/team?next=%2Fconsole%3Fx%3D1",
       session: { id: "kai@bevmaq.com", name: "N", number: null },
     });
     for (const next of ["//evil.com", "/team", null]) {
       const r = await login({ ...input, next, intent: "team" }, { ...s.deps, verify: claims("kai@bevmaq.com") });
-      expect(r.redirect).toBe("/");
+      expect(r.redirect).toBe("/team");
     }
     const allowed = await login(
       { ...input, intent: "team" },
@@ -390,5 +398,21 @@ describe("login modes", () => {
       },
     });
     expect(r).toEqual({ status: 401 });
+  });
+});
+
+describe("proxy: team session on the gate page", () => {
+  test("no next -> 307 to /team; next=/x -> 307 to /x", async () => {
+    process.env.GATE_SESSION_SECRET = SECRET;
+    const { NextRequest } = await import("next/server");
+    const { proxy } = await import("@/proxy");
+    const cookie = `bmea_landing=${signSession({ id: "kai@bevmaq.com", name: "Kai", number: null }, Date.now(), SECRET)}`;
+    const go = (url: string) => proxy(new NextRequest(url, { headers: { cookie } }));
+    const plain = go("http://localhost/early-access");
+    expect(plain.status).toBe(307);
+    expect(new URL(plain.headers.get("location") ?? "").pathname).toBe("/team");
+    const deep = go("http://localhost/early-access?next=%2Fx");
+    expect(deep.status).toBe(307);
+    expect(new URL(deep.headers.get("location") ?? "").pathname).toBe("/x");
   });
 });

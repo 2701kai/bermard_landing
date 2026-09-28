@@ -4,7 +4,7 @@
 // waitlist view), /api/* answers 403; closed mode ignores a non-team session, so it counts as no session.
 import { type NextRequest, NextResponse } from "next/server";
 import { gateOn, isTeamEmail, publicMode } from "@/lib/gate/access";
-import { GATE_PAGE, SESSION_COOKIE, sanitizeNextPath, TEAM_PAGE, verifySession } from "@/lib/gate/session";
+import { GATE_PAGE, SESSION_COOKIE, sanitizeNextPath, TEAM_PAGE, teamLanding, verifySession } from "@/lib/gate/session";
 
 const PUBLIC_PREFIXES = ["/api/early-access/"];
 
@@ -26,7 +26,7 @@ export function proxy(req: NextRequest) {
 
   if (pathname === GATE_PAGE) {
     if (team)
-      return noindex(NextResponse.redirect(new URL(sanitizeNextPath(req.nextUrl.searchParams.get("next")), req.url)));
+      return noindex(NextResponse.redirect(new URL(teamLanding(req.nextUrl.searchParams.get("next")), req.url)));
     return noindex(NextResponse.next());
   }
   if (team) return noindex(NextResponse.next());

@@ -13,7 +13,7 @@ import { GATE_COPY, type GateCopy } from "@/content/early-access";
 import { isTeamEmail, publicMode } from "@/lib/gate/access";
 import { LANG_COOKIE, type Locale, pickLocale } from "@/lib/gate/locale";
 import { OFFSET } from "@/lib/gate/registry";
-import { SESSION_COOKIE, sanitizeNextPath, TEAM_PAGE, verifySession } from "@/lib/gate/session";
+import { SESSION_COOKIE, sanitizeNextPath, TEAM_PAGE, teamLanding, verifySession } from "@/lib/gate/session";
 
 export const metadata: Metadata = {
   title: "BEVMAQ · Early Access",
@@ -30,7 +30,7 @@ export default async function EarlyAccessPage({
   const jar = await cookies();
   const locale = pickLocale(jar.get(LANG_COOKIE)?.value, (await headers()).get("accept-language"));
   const session = verifySession(jar.get(SESSION_COOKIE)?.value);
-  if (session && isTeamEmail(session.id)) redirect(next);
+  if (session && isTeamEmail(session.id)) redirect(teamLanding(next));
   const isPublic = publicMode();
 
   const t = GATE_COPY[locale];

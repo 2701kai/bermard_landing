@@ -7,7 +7,7 @@ import { verifyGoogleIdToken } from "./google";
 import type { Locale } from "./locale";
 import { sendWelcomeMail } from "./mail";
 import { notifyTelegram, registerPerson } from "./registry";
-import { GATE_PAGE, type Session, sanitizeNextPath } from "./session";
+import { GATE_PAGE, type Session, teamLanding, teamPageWith } from "./session";
 
 export type LoginResult =
   | { status: 200; redirect: string; session: Omit<Session, "exp"> }
@@ -41,7 +41,8 @@ export async function login(
   if (decision === "team") {
     return {
       status: 200,
-      redirect: sanitizeNextPath(input.next),
+      // /team keeps its own sign-in on /team (signed-in state, Continue to next); elsewhere a deep link wins over /team.
+      redirect: input.intent === "team" ? teamPageWith(input.next) : teamLanding(input.next),
       session: { id: claims.email, name: claims.name, number: null },
     };
   }

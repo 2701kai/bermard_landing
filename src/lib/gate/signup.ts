@@ -7,7 +7,7 @@ import { codeCopy, sendCodeMail, sendWelcomeMail } from "./mail";
 import { bumpTries, checkCode, createChallenge, newCode, normalizeEmail, readChallenge, resendAllowed } from "./otp";
 import { normalizePhone } from "./phone";
 import { claimCodeMailQuota, claimOtpAttempt, notifyTelegram, type Registrant, registerPerson } from "./registry";
-import { envSecret, GATE_PAGE, type Session, sanitizeNextPath } from "./session";
+import { envSecret, GATE_PAGE, type Session, teamLanding } from "./session";
 
 export type FlowResult = {
   status: number;
@@ -130,7 +130,7 @@ export async function verifyEmail(
   }
 
   if (isTeamEmail(c.email, deps.allow ?? process.env.GATE_ALLOW)) {
-    const next = sanitizeNextPath(typeof input.next === "string" ? input.next : null);
+    const next = teamLanding(typeof input.next === "string" ? input.next : null);
     return {
       status: 200,
       body: { ok: true, redirect: next },

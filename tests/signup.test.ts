@@ -246,6 +246,9 @@ describe("e-mail code flow", () => {
     expect(r.session).toEqual({ id: "kai@bevmaq.com", name: "", number: null });
     expect(r.body.redirect).toBe("/console");
     expect(f.register).not.toHaveBeenCalled();
+    const { cookie: again } = createChallenge("kai@bevmaq.com", "123456", NOW, SECRET);
+    const plain = await verifyEmail({ ...base, code: "123456", honeypot: "", next: null, challenge: again }, f.deps);
+    expect(plain.body.redirect).toBe("/team");
   });
 
   test("verify: a wrong code claims the attempt slot and bumps tries; a replayed slot spends the challenge", async () => {

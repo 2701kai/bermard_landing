@@ -78,6 +78,18 @@ export function sessionCookieOptions(secure: boolean) {
   return { httpOnly: true, sameSite: "lax" as const, secure, path: "/", maxAge: SESSION_DAYS * 86_400 };
 }
 
+/** Where a team sign-in or team session lands: the sanitized deep link, or /team (the staff start page) without one. */
+export function teamLanding(raw: string | null | undefined): string {
+  const next = sanitizeNextPath(raw);
+  return next === "/" ? TEAM_PAGE : next;
+}
+
+/** /team itself, carrying a deep link (if any) for its Continue button. */
+export function teamPageWith(raw: string | null | undefined): string {
+  const next = sanitizeNextPath(raw);
+  return next === "/" ? TEAM_PAGE : `${TEAM_PAGE}?next=${encodeURIComponent(next)}`;
+}
+
 /** Open-redirect guard for the `next` deep-link param: one relative path starting with a single '/'.
  *  Protocol-relative ('//host'), absolute ('http://'), backslash ('/\host', which URL parsers read as '//host')
  *  and control characters fall back to '/'; so do the gate and team pages themselves (a redirect loop). */
